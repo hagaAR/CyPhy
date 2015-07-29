@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<data>
+  <loop>false</loop>
+  <repeat_times>1</repeat_times>
+  <repeat_period>500</repeat_period>
+  <frames_list>
+    <frame name="frame_Haga">
+      <payload>7E0016900013A20040C0E60A00000248616761486167610D0ACF</payload>
+    </frame>
+  </frames_list>
+</data>
