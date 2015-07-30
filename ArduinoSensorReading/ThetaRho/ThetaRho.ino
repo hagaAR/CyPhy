@@ -48,11 +48,11 @@ float readSensorPT100() {
 //  Serial.print(voltage);
 //  Serial.print(" ; analogRead : ");
 //  Serial.print(adcVal);
-//  Temperature = (voltage*6250/165.1)-25;
+  Temperature = (voltage*6250/165.1)-25;
 //  Serial.print(" ; Temperature °C : ");
 //  Serial.println(Temperature);
 //  //accuracy gap : 0.10 °c
-//  return Temperature;
+  return Temperature;
   //delay(1000); //1 sec loop
   
 }
@@ -90,11 +90,12 @@ void receive_dataFromRP(){
       if (xbee.getResponse().getApiId() == ZB_RX_RESPONSE) {
         // got a zb rx packet	
 				Serial.println("here is the packet");
-				//processPayload(rx.getData(),rx.getDataLength());
-				for (int i=0;i<rx.getDataLength();i++){
-					Serial.print((String)rx.getData(i));
-				}
-				//Serial.println("");
+				processPayload(rx.getData(),rx.getDataLength());
+//				for (int i=0;i<rx.getDataLength();i++){
+//					Serial.print((char)rx.getData(i));
+//          Serial.print(" ");
+//				}
+				Serial.println("");
 				Serial.println("ending reading");
       } 
     } else if (xbee.getResponse().isError()) {
