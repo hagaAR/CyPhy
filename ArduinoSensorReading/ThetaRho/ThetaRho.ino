@@ -7,10 +7,11 @@ XBee xbee = XBee();
 //tableau d'octets
 //on crée un String de 100octets (limite des pacquets ZigBee?)
 uint8_t payload_SensorData[100];
-char payload_SensorData_String[]="hello iam arduino";
+//allocation dynamique
+char payload_SensorData_String[100];
 
 // SH + SL Address of receiving XBee
-//@ du coordinateur
+//@ du coordinateur aka raspberry pi
 XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x40c0e60a);
 ZBTxRequest zbTx = ZBTxRequest(addr64, payload_SensorData, sizeof(payload_SensorData));
 ZBTxStatusResponse txStatus = ZBTxStatusResponse();
@@ -43,127 +44,72 @@ float readSensorPT100() {
   adcVal=(float)adcAverage/ (float)aveLength;
   float voltage= adcVal * (3.3 / 4095.0);
   
-  Serial.print("voltage ");
-  Serial.print(voltage);
-  Serial.print(" ; analogRead : ");
-  Serial.print(adcVal);
-  Temperature = (voltage*6250/165.1)-25;
-  Serial.print(" ; Temperature °C : ");
-  Serial.println(Temperature);
-  //accuracy gap : 0.10 °c
-  return Temperature;
+//  Serial.print("voltage ");
+//  Serial.print(voltage);
+//  Serial.print(" ; analogRead : ");
+//  Serial.print(adcVal);
+//  Temperature = (voltage*6250/165.1)-25;
+//  Serial.print(" ; Temperature °C : ");
+//  Serial.println(Temperature);
+//  //accuracy gap : 0.10 °c
+//  return Temperature;
   //delay(1000); //1 sec loop
   
 }
 
+//void write_data(char string[]){
 void write_data(){
-	//payload_SensorData_String  ="hello RP, i'm arduino";
-}
-
-
-void fill_payload_SensorData(){
-  //seulement 1 octet (donc seulement 1 caractere)
-  if(sizeof(payload_SensorData_String)>100) {
-		return;
-	}
-	for(int i=0;i<sizeof(payload_SensorData_String);i++){
-		payload_SensorData[i]=(uint8_t)payload_SensorData_String[i];
-	}
-	
-  //payload_SensorData[1]=0xaf;
-}
-
-void send_SensorData(uint8_t payload_tab[]) {   
-  xbee.send(zbTx);
-  // after sending a tx request, we expect a status response
-  // wait up to half second for the status response
-  if (xbee.readPacket(500)) {
-    // got a response!
-    // should be a znet tx status            	
-    if (xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE) {
-		  xbee.getResponse().getZBTxStatusResponse(txStatus);
-		  //Serial.println("on commence");
-      // get the delivery status, the fifth byte
-      if (txStatus.getDeliveryStatus() == SUCCESS) {
-        // success.  time to celebrate
-		    Serial.println("success.  time to celebrate");
-      } else {
-        // the remote XBee did not receive our packet. is it powered on?
-        Serial.println("he remote XBee did not receive our packet. is it powered on?");
-      }
-    }
-  } else if (xbee.getResponse().isError()) {
-	    Serial.print("Error reading packet.  Error code: ");
-	    Serial.println(xbee.getResponse().getErrorCode());
-  } else {
-    // local XBee did not provide a timely TX Status Response -- should not happen
-    Serial.println("local XBee did not provide a timely TX Status Response -- should not happen");
+  char string[]="hfzsedfz RP, iiukuikm arduinoerztefzgefgyzegfiglgfbegrgergkzerguerugehrgkjzehriuhvuheha fu erfu e rhua u aeu ra ";
+  //Serial.println(sizeof(string));
+  for(int i=0;i<sizeof(string);i++){
+    payload_SensorData_String[i]=string[i];
   }
 
-  //delay(1000);
+  //Fill data payload
+  //seulement 1 octet (donc seulement 1 caractere)
+  if(sizeof(payload_SensorData_String)>100) {
+    return;
+  }
+  for(int i=0;i<sizeof(payload_SensorData_String);i++){
+    payload_SensorData[i]=(uint8_t)payload_SensorData_String[i];
+  }
+
+  
 }
 
+
+void send_SensorData_toRP(uint8_t payload_tab[]) {   
+  xbee.send(zbTx);
+}
 
 
 void receive_dataFromRP(){
-	xbee.readPacket();
-    
+	xbee.readPacket(); 
     if (xbee.getResponse().isAvailable()) {
       // got something
-      
       if (xbee.getResponse().getApiId() == ZB_RX_RESPONSE) {
-        // got a zb rx packet
-        
-        // now fill our zb rx class
-        xbee.getResponse().getZBRxResponse(rx);
-            
-        if (rx.getOption() == ZB_PACKET_ACKNOWLEDGED) {
-            // the sender got an ACK
-    			Serial.println("the sender got an ACK");
-          
-        } else {
-            // we got it (obviously) but sender didn't get an ACK
-			Serial.println("we got it (obviously) but sender didn't get an ACK");
-        }
-        // set dataLed PWM to value of the first byte in the data
-        //analogWrite(dataLed, rx.getData(0));
-		
-		Serial.println("voili voilou");
-		for (int i=0;i<rx.getDataLength();i++){
-			Serial.print((String)rx.getData(i));
-		}
-    //Serial.println("");
-		Serial.println("voila voila");
-		
-      } else if (xbee.getResponse().getApiId() == MODEM_STATUS_RESPONSE) {
-        xbee.getResponse().getModemStatusResponse(msr);
-        // the local XBee sends this response on certain events, like association/dissociation
-        
-        if (msr.getStatus() == ASSOCIATED) {
-          // yay this is great.  flash led
-		  Serial.println("yay this is great.");
-        } else if (msr.getStatus() == DISASSOCIATED) {
-          // this is awful.. flash led to show our discontent
-		  Serial.println("this is awful..");
-        } else {
-          // another status
-		  Serial.println("another status");
-        }
-      } else {
-      	// not something we were expecting
-		Serial.println("not something we were expecting");		
-      }
+        // got a zb rx packet	
+				Serial.println("here is the packet");
+				//processPayload(rx.getData(),rx.getDataLength());
+				for (int i=0;i<rx.getDataLength();i++){
+					Serial.print((String)rx.getData(i));
+				}
+				//Serial.println("");
+				Serial.println("ending reading");
+      } 
     } else if (xbee.getResponse().isError()) {
-		Serial.print("Error reading packet.  Error code: ");
-		Serial.println(xbee.getResponse().getErrorCode());
+			Serial.print("Error reading packet.  Error code: ");
+			Serial.println(xbee.getResponse().getErrorCode());
     }
 }
 
 void loop (){
   uint8_t Temperature=(uint8_t)readSensorPT100();
-	write_data();
-	fill_payload_SensorData();
-  send_SensorData(payload_SensorData);
+  //char string[]="hfzsedfz RP, iiukuikm arduino";
+  //write_data(write_data(string););
+
+	//write_data();
+  //send_SensorData_toRP(payload_SensorData);
   
   receive_dataFromRP();
   
