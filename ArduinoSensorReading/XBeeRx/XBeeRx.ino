@@ -1,4 +1,3 @@
-
 #include <XBee.h>
 
 XBee xbee = XBee();
@@ -12,7 +11,6 @@ void setup() {
   Serial.begin(9600);
   Serial1.begin(9600);
   xbee.begin(Serial1);
-
 }
 
 // continuously reads packets, looking for ZB Receive or Modem Status
