@@ -4,11 +4,11 @@ int sensorPin = A0;    // select the input pin
 int sensorValue = 0;  // variable to store the value coming from the sensor
 // create the XBee object
 XBee xbee = XBee();
-//tableau d'octets
-//on crée un String de 100octets (limite des pacquets ZigBee?)
-uint8_t payload_SensorData[50];
+//payload tableau d'octets
+uint8_t payload_SensorData[100];
+//uint8_t * payload_SensorData;
 //allocation dynamique
-char payload_SensorData_String[100];
+//char payload_SensorData_String[100];
 char payload_reading_data[100];
 bool dataToSend=false;
 String command = "";
@@ -22,7 +22,7 @@ String pending="sending";
 // SH + SL Address of receiving XBee
 //@ du coordinateur ie raspberry pi
 XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x40c0e60a);
-ZBTxRequest zbTx = ZBTxRequest(addr64, payload_SensorData, sizeof(payload_SensorData));
+ZBTxRequest zbTx = ZBTxRequest(addr64, payload_SensorData, sizeof(payload_SensorData));;
 ZBTxStatusResponse txStatus = ZBTxStatusResponse();
 
 XBeeResponse response = XBeeResponse();
@@ -30,7 +30,7 @@ ZBRxResponse rx = ZBRxResponse();
 ModemStatusResponse msr = ModemStatusResponse();
 
 void setup() {
-  Serial.begin(9600);
+  SerialUSB.begin(9600);
   Serial1.begin(9600);
   xbee.setSerial(Serial1);
 }
@@ -52,8 +52,8 @@ String readSensorPT100() {
   adcVal=(float)adcAverage/ (float)aveLength;
   float voltage= adcVal * (3.3 / 4095.0);
   Temperature = (voltage*6250/165.1)-25;
-//  Serial.print(" PT100-Temperature (°C) : ");
-//  Serial.println(Temperature);
+//  SerialUSB.print(" PT100-Temperature (°C) : ");
+//  SerialUSB.println(Temperature);
   Temperature_string=(String)Temperature;
 //  //accuracy gap : 0.10 °c
   return Temperature_string;
@@ -62,19 +62,20 @@ String readSensorPT100() {
 }
 
 void execute_RP_command(){
-   Serial.println("execute_RP_command ");
-    Serial.print("command:");
-    Serial.println(command);
+   SerialUSB.println("execute_RP_command ");
+    SerialUSB.print("command:");
+    SerialUSB.println(command);
    //String str(sensor);
 	//Writes msg to RP
 	if(strcmp(command.c_str(),"getData")==0){
-    Serial.print("command:");
-    Serial.println(command);
+    SerialUSB.print("command:");
+    SerialUSB.println(command);
 		//should be a 'switch case'
 		if(strcmp(sensor.c_str(),"Thermo1")==0){
 			String msgToRP = "Thermo1";
       String PT100_reading;
-      char payload_string[100];
+      char payload_string[50];
+      
       memset(payload_string,0,sizeof(payload_string));
       strcat(payload_string,msgToRP.c_str());
       strcat(payload_string,";");
@@ -83,14 +84,16 @@ void execute_RP_command(){
       strcat(payload_string,(String(dataTimeCounter)).c_str());
       strcat(payload_string,";");
 
-      Serial.print("payload_string:");
-      Serial.println(payload_string);
-      for(int i=0;i<sizeof(payload_SensorData);i++){
+      SerialUSB.print("payload_string:");
+      SerialUSB.println(payload_string);
+      uint8_t payload_bytes[100];
+      *payload_SensorData=*payload_bytes;
+      for(int i=0;i<sizeof(payload_string);i++){
         payload_SensorData[i]=(uint8_t)payload_string[i];
       }
 
 			send_SensorData_to_RP(payload_SensorData);
-     Serial.println("sending to RP... ");
+     SerialUSB.println("sending to RP... ");
 		}
 	} 
 
@@ -99,9 +102,9 @@ void execute_RP_command(){
 
 void send_SensorData_to_RP(uint8_t payload_tab[]) {   
   xbee.send(zbTx);
-  //Serial.print("zbTx.getFrameDataLength():");
+  //SerialUSB.print("zbTx.getFrameDataLength():");
   //zbTx.getFrameData();
-  //Serial.println(zbTx.getFrameData());
+  //SerialUSB.println(zbTx.getFrameData());
   //zbTx.getFrameDataLength();
 }
 
@@ -118,8 +121,8 @@ void receive_command_from_RP(){
         parseCommand();    
       } 
     } else if (xbee.getResponse().isError()) {
-//			Serial.print("Error reading packet.  Error code: ");
-//		  Serial.println(xbee.getResponse().getErrorCode());
+//			SerialUSB.print("Error reading packet.  Error code: ");
+//		  SerialUSB.println(xbee.getResponse().getErrorCode());
     }
 }
 void parseCommand(){
@@ -133,105 +136,105 @@ void parseCommand(){
   int dataTimePeriodStringSize=0;
   int dataTimePeriodStringIndex=0;
    
-  Serial.print("payload_reading_data: ");
-  Serial.print(payload_reading_data);
-  Serial.print(" sizeof(payload_reading_data): ");
-  Serial.println(sizeof(payload_reading_data));
+  SerialUSB.print("payload_reading_data: ");
+  SerialUSB.print(payload_reading_data);
+  SerialUSB.print(" sizeof(payload_reading_data): ");
+  SerialUSB.println(sizeof(payload_reading_data));
   
   for(int i=0;i<sizeof(payload_reading_data);i++){
     if(payload_reading_data[i]==';'){
       commandStringIndex = i;
-      Serial.print("commandStringIndex: ");
-      Serial.println(commandStringIndex);
+      SerialUSB.print("commandStringIndex: ");
+      SerialUSB.println(commandStringIndex);
       break;
     }     
   }
   commandStringSize=commandStringIndex+1;
-  Serial.print("commandStringSize: ");
-  Serial.println(commandStringSize);
+  SerialUSB.print("commandStringSize: ");
+  SerialUSB.println(commandStringSize);
   for(int a=commandStringSize;a<sizeof(payload_reading_data);a++){
     if(payload_reading_data[a]==';'){
       sensorStringIndex = a;
-      Serial.print("sensorStringIndex: ");
-      Serial.println(sensorStringIndex);
+      SerialUSB.print("sensorStringIndex: ");
+      SerialUSB.println(sensorStringIndex);
       break;
     }     
   }
   sensorStringSize=sensorStringIndex-commandStringSize+1;
-  Serial.print("sensorStringSize: ");
-  Serial.println(sensorStringSize);
+  SerialUSB.print("sensorStringSize: ");
+  SerialUSB.println(sensorStringSize);
   for(int b=sensorStringIndex+1;b<sizeof(payload_reading_data);b++){
     if(payload_reading_data[b]==';'){
       dataTimePeriodStringIndex = b;
-      Serial.print("dataTimePeriodStringIndex: ");
-      Serial.println(dataTimePeriodStringIndex);
+      SerialUSB.print("dataTimePeriodStringIndex: ");
+      SerialUSB.println(dataTimePeriodStringIndex);
       break;
     } 
   }
   dataTimePeriodStringSize=dataTimePeriodStringIndex-sensorStringIndex-1;
-  Serial.print("dataTimePeriodStringSize: ");
-  Serial.println(dataTimePeriodStringSize);
+  SerialUSB.print("dataTimePeriodStringSize: ");
+  SerialUSB.println(dataTimePeriodStringSize);
   char tempArr1[commandStringSize];
   char tempArr2[sensorStringSize];
   char tempArr3[dataTimePeriodStringSize];
   //command=realloc(command,commandStringSize);
   //char sensor[sensorStringSize];
   //char dataTimePeriodString[dataTimePeriodStringSize];
-  Serial.print("payload_reading_data command:");
+  SerialUSB.print("payload_reading_data command:");
   for(int k=0;k<commandStringSize-1;k++){
     tempArr1[k]=payload_reading_data[k];
-    Serial.print(payload_reading_data[k]);
+    SerialUSB.print(payload_reading_data[k]);
   }
   String tempString(tempArr1);
   command=tempString;
-  Serial.println("|"); 
-  Serial.print("payload_reading_data sensor:");
+  SerialUSB.println("|"); 
+  SerialUSB.print("payload_reading_data sensor:");
   int count=0;
   for(int g=commandStringIndex+1;g<sensorStringIndex;g++){
     
     tempArr2[count]=payload_reading_data[g];
-    Serial.print(payload_reading_data[g]);
+    SerialUSB.print(payload_reading_data[g]);
     count++;
   }
   String tempString2(tempArr2);
   sensor =tempString2;
-  Serial.println("|");
-  Serial.print("payload_reading_data dataTimePeriodString:");
+  SerialUSB.println("|");
+  SerialUSB.print("payload_reading_data dataTimePeriodString:");
   int count2=0;
   for(int c=sensorStringIndex+1;c<dataTimePeriodStringIndex;c++){
     tempArr3[count2]=payload_reading_data[c];
-    Serial.print(payload_reading_data[c]);
+    SerialUSB.print(payload_reading_data[c]);
     count2++;
   }
   //dataTimePeriodString=tempArr3;
   
   dataTimePeriod=atoi(tempArr3);
-  Serial.println("|");
-  Serial.print("tempArr3: ");
-  Serial.println(tempArr3);
-  Serial.print("dataTimePeriod: ");
-  Serial.println(dataTimePeriod);
+  SerialUSB.println("|");
+  SerialUSB.print("tempArr3: ");
+  SerialUSB.println(tempArr3);
+  SerialUSB.print("dataTimePeriod: ");
+  SerialUSB.println(dataTimePeriod);
 //  dataTimePeriod=dataTimePeriodString.toInt();
-//  Serial.print("dataTimePeriod: ");
-//  Serial.print(dataTimePeriod);
-//  Serial.println(" (s)");
-  Serial.print("command: ");
-  Serial.println(command);
+//  SerialUSB.print("dataTimePeriod: ");
+//  SerialUSB.print(dataTimePeriod);
+//  SerialUSB.println(" (s)");
+  SerialUSB.print("command: ");
+  SerialUSB.println(command);
   
-  Serial.print("sensor: ");
-  Serial.println(sensor);
+  SerialUSB.print("sensor: ");
+  SerialUSB.println(sensor);
  dataToSend=true;
  
 }
 void sendData(){
   if(dataToSend){
-    Serial.print(" sendData  command:");
-    Serial.println(command);
+    SerialUSB.print(" sendData  command:");
+    SerialUSB.println(command);
    if(dataTimeCounter == dataTimePeriod){
     
-    Serial.print("finish sending ");
-    Serial.print(msgCount);
-    Serial.println(" messages!");
+    SerialUSB.print("finish sending ");
+    SerialUSB.print(msgCount);
+    SerialUSB.println(" messages!");
     dataTimeCounter =0;
     dataTimePeriod = 0;
   //      command="";
@@ -241,7 +244,7 @@ void sendData(){
     return;
    }
 //     pending+=".";
-//     Serial.print(pending);
+//     SerialUSB.print(pending);
      //Send DATA to RP
      execute_RP_command();
      msgCount++;
