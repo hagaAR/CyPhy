@@ -24,7 +24,7 @@ public class SerialComAPIMode {
 	public static void main (String args[])throws InterruptedException {
 		// create an instance of the serial communications class
         serial = SerialFactory.createInstance();
-		serial.open(Serial.DEFAULT_COM_PORT, 9600);
+		serial.open(serial.DEFAULT_COM_PORT, 9600);
 		//serial.open("/dev/ttyS0", 9600);
         // create and register the serial data listener
         serial.addListener(new SerialDataListener() {
@@ -38,12 +38,12 @@ public class SerialComAPIMode {
             }            
         });
         synchroniseTime();
-			/*while(true){
-             //serial.writeln("Hello World!");
+		while(true){
+             serial.writeln("Hello World!");
              
              Thread.sleep(1000);
              
-		 }*/
+		 }
 	}
 }
 
