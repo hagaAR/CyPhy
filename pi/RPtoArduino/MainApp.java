@@ -32,7 +32,7 @@ public class MainApp {
 		String[] dataArray = data.split(";");
 		//System.out.println("Size: " + dataArray.length);
 		
-		if(dataArray.length <= 1){
+		if(dataArray.length <= 2){
 			//System.out.println("The message is: " + data);
 			System.out.println("No data is saved");
 			return;
@@ -53,6 +53,12 @@ public class MainApp {
 		dbcon.show_sensor_data_table();
 	}
 	
+	static public void dropAndCreateSensorDataTable () {	
+		dbcon.drop_sensor_data_table();
+		dbcon.create_sensor_data_table();
+		dbcon.show_sensor_data_table() ;
+	}
+	
 	static public void showSensorsTable () {	
 		dbcon.show_sensors_table();
 	}
@@ -71,11 +77,11 @@ public class MainApp {
 	public static void main (String args[])  throws InterruptedException {
 		setUpArduinoCommunication();		
 		setUpDataBase ();
-		//dbcon.create_sensor_data_table();
+		dropAndCreateSensorDataTable ();
 		//initialiseSensorTable ();
 		showSensorsTable () ;
 		//dbcon.show_sensor_data_table() ;
-		getDataSample_insertInSensorDataTable (3600);
+		getDataSample_insertInSensorDataTable (60);
 		
 		
 		

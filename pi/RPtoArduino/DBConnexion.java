@@ -176,6 +176,25 @@ public class DBConnexion {
 		
 	}
 	
+	public void drop_sensor_data_table() {
+		String sql_query;
+		Statement statement;
+		
+		//not decided what variables types
+		sql_query="DROP TABLE sensor_data" ;
+		try{
+			statement = con.createStatement();
+			statement.executeUpdate(sql_query);
+			System.out.println("drop table: 'sensor_data'");
+			statement.close();
+		} catch (Exception e){
+			e.printStackTrace();
+			System.err.println(e.getClass().getName()+": "+e.getMessage());
+			System.exit(0);
+		}
+		
+	}
+	
 	public void sensor_table_new_insert(int id, String sensor_name,String sensor_unit) {
 		String sql_query;
 		Statement statement;

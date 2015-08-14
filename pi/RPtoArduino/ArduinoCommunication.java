@@ -33,11 +33,13 @@ public class ArduinoCommunication extends Observable {
 		serial = SerialFactory.createInstance();
 		//System.out.println("Instance created");
 		serial.open(serial.DEFAULT_COM_PORT, 9600);
+		
 		//System.out.println("Port Serie n°: "+serial.DEFAULT_COM_PORT);
 		 // create and register the serial data listener
         serial.addListener(new SerialDataListener() {
             @Override
             public void dataReceived(SerialDataEvent event) {
+				//serial.flush();
                 // print out the data received to the console
                 countingReceivedMsg+=1;
                 //System.out.print("msg #"+countingReceivedMsg+" ");
@@ -108,14 +110,15 @@ public class ArduinoCommunication extends Observable {
 		String sensor = "";
 		String sensor_value_string= "";
 		float sensor_value;
-		//System.out.print("message: ");
-		//System.out.println(message);
+		System.out.print("message: ");
+		System.out.println(message);
 		//System.out.print("message.message.lastIndexOf: ");
 		//System.out.println(message.lastIndexOf(";"));
 		//System.out.print("message.message.IndexOf: ");
 		//System.out.println(message.indexOf(";"));
 		//Split instead of substring
-		if(message.indexOf(";")>0 ){//&& message.lastIndexOf(";")>message.indexOf(";") ){
+		String[] splitMessage = message.split(";");
+		if(splitMessage.length >= 3){//message.indexOf(";")>0 ){//&& message.lastIndexOf(";")>message.indexOf(";") ){
 			/*sensor=message.substring(0,message.indexOf(";"));
 			sensor_value_string=message.substring(message.indexOf(";")+1,message.lastIndexOf(";")-1);
 			//sensor_value=Float.parseFloat(sensor_value_string);
@@ -125,11 +128,13 @@ public class ArduinoCommunication extends Observable {
 			System.out.println(sensor_value_string);
 			//System.out.print(" sensor_value: ");
 			//System.out.println(sensor_value);*/
-			String[] splitMessage = message.split(";");
+			splitMessage = message.split(";");
 			sensor = splitMessage[0];
 			sensor_value_string = splitMessage[1];
 		}
 		else{
+			System.out.print("message.length: ");
+			System.out.println(message.length());
 			message = "";
 		}
 		//message = sensor + ";" + sensor_value_string;
