@@ -128,6 +128,8 @@ public class DBConnexion {
 		} 
 		
 	}
+	
+	
 	public int getSensorID(String sensorName) {
 		Statement statement;
 		ResultSet rs;
@@ -136,7 +138,7 @@ public class DBConnexion {
 			rs=statement.executeQuery("SELECT distinct id FROM sensors WHERE name = 'thermo1'"); //+ sensorName);
 			while(rs.next()){
 				//int sensor_id = rs.getInt("sensor_id");
-				System.out.println("next");
+				//System.out.println("next");
 				return rs.getInt("id");
 				//double value = rs.getDouble("value");
 				//Timestamp timestamp = rs.getTimestamp("timestamp");

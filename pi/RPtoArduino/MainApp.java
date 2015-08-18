@@ -28,7 +28,7 @@ public class MainApp {
 	}
 	
 	static public void insertData(String data){
-		//System.out.println("The message is: " + data);
+		System.out.println("The message is: " + data);
 		String[] dataArray = data.split(";");
 		//System.out.println("Size: " + dataArray.length);
 		
@@ -50,7 +50,7 @@ public class MainApp {
 		//dbcon.sensor_data_table_new_insert(1,21.0,timestamp);
 		//dbcon.show_sensor_data_table();
 		
-		dbcon.show_sensor_data_table();
+		//dbcon.show_sensor_data_table();
 	}
 	
 	static public void dropAndCreateSensorDataTable () {	
@@ -79,10 +79,10 @@ public class MainApp {
 		setUpDataBase ();
 		dropAndCreateSensorDataTable ();
 		//initialiseSensorTable ();
-		showSensorsTable () ;
+		//showSensorsTable () ;
 		//dbcon.show_sensor_data_table() ;
-		getDataSample_insertInSensorDataTable (60);
-		
+		getDataSample_insertInSensorDataTable (40);
+		//System.out.println("Finished!!");
 		
 		
 	/*	

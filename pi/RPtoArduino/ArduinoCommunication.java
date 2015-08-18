@@ -19,9 +19,11 @@ import java.util.Observable;
 
 
 public class ArduinoCommunication extends Observable {
-	static Serial serial;
-	static int countingReceivedMsg;
-	static String message;
+	Serial serial;
+	int countingReceivedMsg;
+	String message="";
+	boolean messageComplete = true;
+	String buffer="";
 	//static XBee xbee;
 	
 	
@@ -45,16 +47,20 @@ public class ArduinoCommunication extends Observable {
                 //System.out.print("msg #"+countingReceivedMsg+" ");
                 //System.out.printf(event.getData());
                 message = event.getData();
+                System.out.print("message = event.getData()  :");
+                System.out.println(message);
                 checkMessage();
-                setChanged();
-                notifyObservers(message);
+               /* if(messageComplete){
+					setChanged();
+					notifyObservers(message);
+				}*/
             }            
         });	
 	}
 	
 	//static public void setAPIModeCommunication(){
 		//xbee = new XBee();
-		//try{
+		//try{Thermo1;36.81;62//Thermo1;36.77;63//Thermo1;36.76;64//Thermo1;36.82;65//
 			//xbee.open("/dev/ttyAMA0", 9600);
 			//System.out.println("Creation of XBee comm");
 			//// replace with end device's 64-bit address (SH + SL)
@@ -107,37 +113,82 @@ public class ArduinoCommunication extends Observable {
 	
 	public void checkMessage(){
 		//handle messages
-		String sensor = "";
-		String sensor_value_string= "";
-		float sensor_value;
-		System.out.print("message: ");
-		System.out.println(message);
-		//System.out.print("message.message.lastIndexOf: ");
-		//System.out.println(message.lastIndexOf(";"));
-		//System.out.print("message.message.IndexOf: ");
-		//System.out.println(message.indexOf(";"));
-		//Split instead of substring
-		String[] splitMessage = message.split(";");
-		if(splitMessage.length >= 3){//message.indexOf(";")>0 ){//&& message.lastIndexOf(";")>message.indexOf(";") ){
-			/*sensor=message.substring(0,message.indexOf(";"));
-			sensor_value_string=message.substring(message.indexOf(";")+1,message.lastIndexOf(";")-1);
-			//sensor_value=Float.parseFloat(sensor_value_string);
-			System.out.print("sensor: ");
-			System.out.print(sensor);
-			System.out.print(" sensor_value_string: ");
-			System.out.println(sensor_value_string);
-			//System.out.print(" sensor_value: ");
-			//System.out.println(sensor_value);*/
-			splitMessage = message.split(";");
-			sensor = splitMessage[0];
-			sensor_value_string = splitMessage[1];
-		}
-		else{
-			System.out.print("message.length: ");
-			System.out.println(message.length());
-			message = "";
+		//String sensor = "";
+		//String sensor_value_string= "";
+		//float sensor_value;
+		System.out.println("");
+		System.out.print("message received from Serial: ");
+		System.out.print(message);
+		System.out.println("");
+		//String[] splitMessage = message.split(";");
+		//char[] charArray = message.toCharArray();
+		//for (int i=0; i< charArray.length;i++)
+			//System.out.print(charArray[i]); 
+		if(message.contains("/")){
+			System.out.println("message contains /");
+
+			/*if(splitMessage.length >= 3){
+				splitMessage = message.split(";");
+				sensor = splitMessage[0];
+				sensor_value_string = splitMessage[1];
+			}
+			else{
+				System.out.print("message.length: ");
+				System.out.println(message.length());
+				message = "";
+			}*/
+			if(!messageComplete){
+				System.out.println("message isnot complete");
+				System.out.print("message:");
+				System.out.println(message);
+				message = buffer + message;
+				messageComplete = true;
+			}
+			
+			String[] msgList = message.split("/");
+			System.out.print("msgList.toString(): ");
+			for(int k=0;k<msgList.length;k++)
+					System.out.println(msgList[k]);
+			System.out.println(msgList.toString());
+			System.out.print("msgList.length: ");
+			System.out.println(msgList.length);
+			if(msgList.length> 2){
+				System.out.println("message contains at least 2 /");
+				//for(String msg: msgList){
+				for(int k=0;k<msgList.length;k++){
+					String msg="";
+					msg=msgList[k];
+					if(checkSyntax(msg)){
+						System.out.println("every split is inserted in db");
+						System.out.println(msg);
+						setChanged();
+						notifyObservers(msg);
+					}
+				}
+			}else {
+				message = msgList[0];
+				System.out.println("message contains 0 or 1 |");
+				System.out.print("message:");
+				System.out.println(message);
+				setChanged();
+				notifyObservers(message);
+			}
+			
+			
+		}else{
+			System.out.println("message buffered & set to notComplete because doesnt end with |");
+			System.out.print("buffered:");
+			System.out.println(message);
+			buffer = message;
+			messageComplete= false;
 		}
 		//message = sensor + ";" + sensor_value_string;
+	}
+	
+	private boolean checkSyntax(String msg){
+		if(msg.contains(";"))
+			return true;
+		return false;
 	}
 	
 	public String getMessage(){
