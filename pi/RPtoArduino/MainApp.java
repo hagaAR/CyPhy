@@ -12,10 +12,20 @@ public class MainApp {
 		dbcon = new DBConnexion("CPS","haga","a");
 		dbcon.connect();
 	}
-	static public void initialiseSensorTable () {	
+	static public void initialiseSensorsTable () {	
+		dbcon.drop_sensors_table();
 		dbcon.create_sensors_Table();
-		dbcon.sensor_table_new_insert(1,"thermo1","celcius");
 	}
+	static public void initialiseSensorDataTable () {	
+		dbcon.drop_sensor_data_table();
+		dbcon.create_sensor_data_table();
+	}
+	
+	static public void fillSensorsTable () {	
+		dbcon.sensors_table_new_insert(1,"thermo1","celcius");
+		dbcon.sensors_table_new_insert(2,"thermo2","celcius");
+	}
+	
 	static public void setUpArduinoCommunication(){
 		com = new ArduinoCommunication();
 		MainApp observer = new MainApp();
@@ -28,7 +38,7 @@ public class MainApp {
 	}
 	
 	static public void insertData(String data){
-		System.out.println("The message is: " + data);
+		System.out.println("Received message is: " + data);
 		String[] dataArray = data.split(";");
 		//System.out.println("Size: " + dataArray.length);
 		
@@ -46,60 +56,45 @@ public class MainApp {
 			return;
 		}
 		dbcon.sensor_data_table_new_insert(dbcon.getSensorID(dataArray[0]),Double.parseDouble(dataArray[1]),timestamp);
-		//timestamp = new Timestamp(new Date().getTime());
-		//dbcon.sensor_data_table_new_insert(1,21.0,timestamp);
-		//dbcon.show_sensor_data_table();
-		
-		//dbcon.show_sensor_data_table();
 	}
 	
-	static public void dropAndCreateSensorDataTable () {	
-		dbcon.drop_sensor_data_table();
-		dbcon.create_sensor_data_table();
-		dbcon.show_sensor_data_table() ;
-	}
+
 	
 	static public void showSensorsTable () {	
 		dbcon.show_sensors_table();
 	}
+	static public void showSensorDataTable () {	
+		dbcon.show_sensor_data_table() ;
+	}
 	
-	static public void getDataSample_insertInSensorDataTable () {
+	static public void getDataSampleFromThermo1_insertInSensorDataTable () {
 		timeStamp = new Date().getTime();	
-		com.getData();
+		com.getDataFromThermo1();
 	}	
 	
-	static public void getDataSample_insertInSensorDataTable (int timeDataPeriod) {	
+	static public void getDataSampleFromThermo1_insertInSensorDataTable (int timeDataPeriod) {	
 		timeStamp = new Date().getTime();	
-		com.getData(timeDataPeriod);
+		com.getDataFromThermo1(timeDataPeriod);
 		
 	}
 		
 	public static void main (String args[])  throws InterruptedException {
+		//Begin communication with Arduino & Db
 		setUpArduinoCommunication();		
 		setUpDataBase ();
-		dropAndCreateSensorDataTable ();
-		//initialiseSensorTable ();
-		//showSensorsTable () ;
-		//dbcon.show_sensor_data_table() ;
-		getDataSample_insertInSensorDataTable (40);
-		//System.out.println("Finished!!");
 		
+		//Re-initialize sensors db
+		//initialiseSensorsTable ();
+		//fillSensorsTable ();
+		showSensorsTable () ;
 		
-	/*	
-		DBConnexion dbcon = new DBConnexion("CPS","haga","a");
-		dbcon.connect();
-		//dbcon.create_sensors_Table();
-		//dbcon.sensor_table_new_insert(1,"thermometer","celcius");
-		//dbcon.insertLine("Microcontrollers", "ArduinoDue");
-		dbcon.show_sensors_table();
-		dbcon.create_sensor_data_table();
-		//java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		Timestamp timestamp = new Timestamp(new Date().getTime());
-		dbcon.sensor_data_table_new_insert(1,22.0,timestamp);
-		timestamp = new Timestamp(new Date().getTime());
-		dbcon.sensor_data_table_new_insert(1,21.0,timestamp);
-		dbcon.show_sensor_data_table();
-		* */
+		//Re-initialize (drop&re-create table) SensorData db
+		initialiseSensorDataTable ();
+		
+		//ask Arduino for data from thermo1
+		getDataSampleFromThermo1_insertInSensorDataTable (40);
+		showSensorDataTable ();
+	
 	}
 	
 }

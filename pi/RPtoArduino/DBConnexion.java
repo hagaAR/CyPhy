@@ -7,9 +7,6 @@ import java.sql.Timestamp;
 public class DBConnexion {
 	
 	private static Connection con;
-	
-	//static ResultSet rs;
-	
 	private static String db_url;
 	private static String user;
 	private static String password;
@@ -25,9 +22,6 @@ public class DBConnexion {
 	}
 	
 	public void connect(){
-		//con=null;
-		//st=null;
-		//rs=null;
 		//db_url="jdbc:postgresql:hagadb";
 		//user = "haga";
 		//password ="a";
@@ -36,9 +30,7 @@ public class DBConnexion {
 			con=DriverManager.getConnection(db_url, user, password);
 			
 			System.out.println("connexion db");
-			//statement = con.createStatement();
-			
-			//rs = st.executeQuery("SELECT DBConnexion()");	 
+
 		} catch (Exception ex){
 			ex.printStackTrace();
 			System.err.println(ex.getClass().getName()+": "+ex.getMessage());
@@ -63,10 +55,10 @@ public class DBConnexion {
 					"unit VARCHAR(100)" +
 					 ")" 
 					;
-		sql_query1="DROP TABLE sensors";
+		//sql_query1="DROP TABLE sensors";
 		try{
 			statement = con.createStatement();
-			statement.executeUpdate(sql_query1);
+			//statement.executeUpdate(sql_query1);
 			statement.executeUpdate(sql_query2);
 			System.out.println("creation table: 'Sensors'");
 			statement.close();
@@ -77,6 +69,25 @@ public class DBConnexion {
 		}
 		
 	}
+	public void drop_sensors_table() {
+		String sql_query;
+		Statement statement;
+		
+		//not decided what variables types
+		sql_query="DROP TABLE sensors" ;
+		try{
+			statement = con.createStatement();
+			statement.executeUpdate(sql_query);
+			System.out.println("drop table: 'sensors'");
+			statement.close();
+		} catch (Exception e){
+			e.printStackTrace();
+			System.err.println(e.getClass().getName()+": "+e.getMessage());
+			System.exit(0);
+		}
+		
+	}
+	
 	
 	public void show_sensors_table() {
 		String sql_query;
@@ -133,15 +144,17 @@ public class DBConnexion {
 	public int getSensorID(String sensorName) {
 		Statement statement;
 		ResultSet rs;
+		sensorName=sensorName.toLowerCase();
+		//System.out.print("sensorName|");
+		//System.out.print(sensorName);
+		//System.out.println("|");
 		try{
 			statement = con.createStatement();
-			rs=statement.executeQuery("SELECT distinct id FROM sensors WHERE name = 'thermo1'"); //+ sensorName);
+			rs=statement.executeQuery("SELECT distinct id FROM sensors WHERE name = '"+sensorName+"'");
 			while(rs.next()){
-				//int sensor_id = rs.getInt("sensor_id");
-				//System.out.println("next");
+				//System.out.print("return rs.getInt: ");
+				//System.out.println(rs.getInt("id"));
 				return rs.getInt("id");
-				//double value = rs.getDouble("value");
-				//Timestamp timestamp = rs.getTimestamp("timestamp");
 			}
 			
 		} catch (Exception e){
@@ -154,11 +167,12 @@ public class DBConnexion {
 	
 	
 	public void create_sensor_data_table() {
-		String sql_query;
+		String sql_query1,sql_query2;
 		Statement statement;
 		
-		//not decided what variables types
-		sql_query="CREATE TABLE sensor_data" +
+		//Drop table before
+		//sql_query1="DROP TABLE sensor_data" ;
+		sql_query2="CREATE TABLE sensor_data" +
 					" ( "  +
 					"sensor_id INTEGER," +
 					"value FLOAT," +
@@ -167,7 +181,8 @@ public class DBConnexion {
 					;
 		try{
 			statement = con.createStatement();
-			statement.executeUpdate(sql_query);
+			//statement.executeUpdate(sql_query1);
+			statement.executeUpdate(sql_query2);
 			System.out.println("creation table: 'sensor_data'");
 			statement.close();
 		} catch (Exception e){
@@ -197,7 +212,7 @@ public class DBConnexion {
 		
 	}
 	
-	public void sensor_table_new_insert(int id, String sensor_name,String sensor_unit) {
+	public void sensors_table_new_insert(int id, String sensor_name,String sensor_unit) {
 		String sql_query;
 		Statement statement;
 		//ResultSet rs;

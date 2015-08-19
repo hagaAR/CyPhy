@@ -113,17 +113,10 @@ public class ArduinoCommunication extends Observable {
 	
 	public void checkMessage(){
 		//handle messages
-		//String sensor = "";
-		//String sensor_value_string= "";
-		//float sensor_value;
-		System.out.println("");
-		System.out.print("message received from Serial: ");
-		System.out.print(message);
-		System.out.println("");
-		//String[] splitMessage = message.split(";");
-		//char[] charArray = message.toCharArray();
-		//for (int i=0; i< charArray.length;i++)
-			//System.out.print(charArray[i]); 
+		//System.out.println("");
+		//System.out.print("message received from Serial: ");
+		//System.out.print(message);
+		//System.out.println("");
 		if(message.contains("/")){
 			System.out.println("message contains /");
 
@@ -146,12 +139,12 @@ public class ArduinoCommunication extends Observable {
 			}
 			
 			String[] msgList = message.split("/");
-			System.out.print("msgList.toString(): ");
+			//System.out.print("msgList.toString(): ");
 			for(int k=0;k<msgList.length;k++)
 					System.out.println(msgList[k]);
-			System.out.println(msgList.toString());
-			System.out.print("msgList.length: ");
-			System.out.println(msgList.length);
+			//System.out.println(msgList.toString());
+			//System.out.print("msgList.length: ");
+			//System.out.println(msgList.length);
 			if(msgList.length> 2){
 				System.out.println("message contains at least 2 /");
 				//for(String msg: msgList){
@@ -167,7 +160,7 @@ public class ArduinoCommunication extends Observable {
 				}
 			}else {
 				message = msgList[0];
-				System.out.println("message contains 0 or 1 |");
+				System.out.println("message contains 0 or 1 /");
 				System.out.print("message:");
 				System.out.println(message);
 				setChanged();
@@ -176,7 +169,7 @@ public class ArduinoCommunication extends Observable {
 			
 			
 		}else{
-			System.out.println("message buffered & set to notComplete because doesnt end with |");
+			System.out.println("message buffered & set to notComplete because doesnt end with /");
 			System.out.print("buffered:");
 			System.out.println(message);
 			buffer = message;
@@ -195,15 +188,15 @@ public class ArduinoCommunication extends Observable {
 			return message;
 	}
 	
-	public void getData(){
-		sendToArduinoATMode("getData;Thermo1;1;");
+	public void getDataFromThermo1(){
+		sendToArduinoATMode("getData;thermo1;1;");
 		//sendToArduinoATMode("getData;Thermo1");
 		//String receivedData = receiveData();
 		//return receiveData();
 	}
 	
-	public void getData(int timePeriod){
-		sendToArduinoATMode("getData;Thermo1;" + timePeriod+";");
+	public void getDataFromThermo1(int timePeriod){
+		sendToArduinoATMode("getData;thermo1;" + timePeriod+";");
 		//String receivedData = receiveData();
 		//return receiveData();
 	}
