@@ -187,8 +187,8 @@ String readSensor(int pin) {
 }
 
 void execute_RP_command(){
-   SerialUSB.println("execute_RP_command ");
-
+  SerialUSB.println("execute_RP_command ");
+  String sensorString="";
 	if(strcmp(command.c_str(),"stop")==0){
 		if(strcmp(sensor.c_str(),"all")==0){
 			dataToSend=false;
@@ -197,37 +197,40 @@ void execute_RP_command(){
 	}
 	
 	if(strcmp(command.c_str(),"getData")==0){
-		if(strcmp(sensor.c_str(),"thermo1")==0){
-			send_thermo1_to_RP();
-		}
+    if(strcmp(sensor.c_str(),"thermo1")==0){
+      sensorString=prepare_send_thermo1_to_RP();
+    }
     ///for thermo2
     if(strcmp(sensor.c_str(),"thermo2")==0){
-      send_thermo2_to_RP();
+      sensorString=prepare_send_thermo2_to_RP();
     }
-		// if(strcmp(sensor.c_str(),"thermo3")==0){
-      // send_thermo3_to_RP();
-    // }
-		// if(strcmp(sensor.c_str(),"thermo4")==0){
-      // send_thermo4_to_RP();
-    // }
-		// if(strcmp(sensor.c_str(),"thermo5")==0){
-      // send_thermo5_to_RP();
-    // }
-		if(strcmp(sensor.c_str(),"all")==0){
-			SerialUSB.println("sensor==all");
-			send_all_to_RP();
-		}
+    if(strcmp(sensor.c_str(),"thermo3")==0){
+      sensorString=prepare_send_thermo3_to_RP();
+    }
+    if(strcmp(sensor.c_str(),"thermo4")==0){
+      sensorString=prepare_send_thermo4_to_RP();
+    }
+    if(strcmp(sensor.c_str(),"thermo5")==0){
+      sensorString=prepare_send_thermo5_to_RP();
+    }
+    if(strcmp(sensor.c_str(),"all")==0){
+      SerialUSB.println("sensor==all"); 
+      sensorString=prepare_send_all_to_RP();
+    }
+    if(sensorString!=""){
+      send_data_to_RP(sensorString);
+    }
 	} 
 
 }
 
 String prepare_send_thermo1_to_RP(){
-	String msgToRP = "thermo1";
+	String msgToRP1 = "thermo1";
   String PT100_reading;
   String thermo1String;
   String semicolon =";";
   thermo1String=readSensor(PT100_Thermo1_pin);
-  int stringSize = msgToRP.length() + thermo1String.length() + (String(dataTimeCounter)).length()+semicolon.length()*3;
+  int stringSize = msgToRP1.length() + thermo1String.length() + (String(dataTimeCounter)).length()+semicolon.length()*3;
   //stringSize+=(String(stringSize)).length();
 //      SerialUSB.print("stringSize");
 //      SerialUSB.println(stringSize);
@@ -236,7 +239,7 @@ String prepare_send_thermo1_to_RP(){
   memset(payload_string,0,sizeof(payload_string)); //initialize the array
   //strcat(payload_string,(String(stringSize)).c_str());
   //strcat(payload_string,";");
-  strcat(payload_string,msgToRP.c_str());
+  strcat(payload_string,msgToRP1.c_str());
   strcat(payload_string,";");
   strcat(payload_string,thermo1String.c_str());
   strcat(payload_string,";");
@@ -244,11 +247,124 @@ String prepare_send_thermo1_to_RP(){
   return payload_string;
 }
 
-void send_thermo1_to_RP(){
+String prepare_send_thermo2_to_RP(){
+  String msgToRP2 = "thermo2";
+  String PT100_reading;
+  String pipe =";";
+  String thermo2String;
+  thermo2String=readSensor(PT100_Thermo2_pin);
+  int stringSize = msgToRP2.length() + thermo2String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
+  //stringSize+=(String(stringSize)).length();
+//      SerialUSB.print("stringSize");
+//      SerialUSB.println(stringSize);
+  
+  char payload_string[stringSize];
+  memset(payload_string,0,sizeof(payload_string));
+  //strcat(payload_string,(String(stringSize)).c_str());
+  //strcat(payload_string,";");
+  strcat(payload_string,msgToRP2.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,thermo2String.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,(String(dataTimeCounter)).c_str());
+  return payload_string;
+//
+}
+String prepare_send_thermo3_to_RP(){
+  String msgToRP3 = "thermo3";
+  String PT100_reading;
+  String pipe =";";
+  String thermo3String;
+  thermo3String=readSensor(PT100_Thermo3_pin);
+  int stringSize = msgToRP3.length() + thermo3String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
+  //stringSize+=(String(stringSize)).length();
+//      SerialUSB.print("stringSize");
+//      SerialUSB.println(stringSize);
+  
+  char payload_string[stringSize];
+  memset(payload_string,0,sizeof(payload_string));
+  //strcat(payload_string,(String(stringSize)).c_str());
+  //strcat(payload_string,";");
+  strcat(payload_string,msgToRP3.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,thermo3String.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,(String(dataTimeCounter)).c_str());
+  return payload_string;
+//
+}
+String prepare_send_thermo4_to_RP(){
+  String msgToRP4 = "thermo4";
+  String PT100_reading;
+  String pipe =";";
+  String thermo4String;
+  thermo4String=readSensor(PT100_Thermo4_pin);
+  int stringSize = msgToRP4.length() + thermo4String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
+  //stringSize+=(String(stringSize)).length();
+//      SerialUSB.print("stringSize");
+//      SerialUSB.println(stringSize);
+  
+  char payload_string[stringSize];
+  memset(payload_string,0,sizeof(payload_string));
+  //strcat(payload_string,(String(stringSize)).c_str());
+  //strcat(payload_string,";");
+  strcat(payload_string,msgToRP4.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,thermo4String.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,(String(dataTimeCounter)).c_str());
+  return payload_string;
+//
+}
+String prepare_send_thermo5_to_RP(){
+  String msgToRP5 = "thermo5";
+  String PT100_reading;
+  String pipe =";";
+  String thermo5String;
+  thermo5String=readSensor(PT100_Thermo5_pin);
+  int stringSize = msgToRP5.length() + thermo5String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
+  //stringSize+=(String(stringSize)).length();
+//      SerialUSB.print("stringSize");
+//      SerialUSB.println(stringSize);
+  
+  char payload_string[stringSize];
+  memset(payload_string,0,sizeof(payload_string));
+  //strcat(payload_string,(String(stringSize)).c_str());
+  //strcat(payload_string,";");
+  strcat(payload_string,msgToRP5.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,thermo5String.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,(String(dataTimeCounter)).c_str());
+  return payload_string;
+//
+}
+
+String prepare_send_all_to_RP(){
+  String thermo1msg, thermo2msg,thermo3msg,thermo4msg,thermo5msg,msgtoSend;
+  thermo1msg=prepare_send_thermo1_to_RP();
+  thermo2msg=prepare_send_thermo2_to_RP();
+  thermo3msg=prepare_send_thermo3_to_RP();
+  thermo4msg=prepare_send_thermo4_to_RP();
+  thermo5msg=prepare_send_thermo5_to_RP();
+  msgtoSend="";
+  msgtoSend.concat(thermo1msg);
+  msgtoSend.concat(",");
+  msgtoSend.concat(thermo2msg);
+  msgtoSend.concat(",");
+  msgtoSend.concat(thermo3msg);
+  msgtoSend.concat(",");
+  msgtoSend.concat(thermo4msg);
+  msgtoSend.concat(",");
+  msgtoSend.concat(thermo5msg);
+  return msgtoSend;
+}
+
+void send_data_to_RP(String dataToSend){
   
   //int charArraySize=sizeof(prepare_send_thermo1_to_RP());
   String payload_charArray;
-  payload_charArray=prepare_send_thermo1_to_RP();
+  payload_charArray=dataToSend;
   payload_charArray.concat("/");
   SerialUSB.print("charArraySize:");
   SerialUSB.println(payload_charArray.length());
@@ -264,145 +380,10 @@ void send_thermo1_to_RP(){
   }
   
   SerialUSB.println("");
-  send_SensorData_to_RP(payload_SensorData);
+  //send_SensorData_to_RP(payload_SensorData);
+  xbee.send(zbTx);
  SerialUSB.println("sending to RP... ");
 }
-
-
-void send_thermo2_to_RP(){
-	String msgToRP = "thermo2";
-  String PT100_reading;
-  String pipe =";";
-  String thermo2String;
-  thermo2String=readSensor(PT100_Thermo2_pin);
-  int stringSize = msgToRP.length() + thermo2String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
-  //stringSize+=(String(stringSize)).length();
-//      SerialUSB.print("stringSize");
-//      SerialUSB.println(stringSize);
-  
-  char payload_string[stringSize];
-  memset(payload_string,0,sizeof(payload_string));
-  //strcat(payload_string,(String(stringSize)).c_str());
-  //strcat(payload_string,";");
-  strcat(payload_string,msgToRP.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,thermo2String.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  strcat(payload_string,"/");
-//
-  SerialUSB.print("payload_string:");
-  SerialUSB.println(payload_string);
-  uint8_t payload_bytes[stringSize];
-  *payload_SensorData=*payload_bytes;
-  SerialUSB.print("payload_SensorData :");
-  for(int i=0;i<stringSize;i++){
-    payload_SensorData[i]=(uint8_t)payload_string[i];
-    SerialUSB.print(payload_SensorData[i]);
-    SerialUSB.print(" ");
-  }
-  
-  SerialUSB.println("");
-  send_SensorData_to_RP(payload_SensorData);
-  SerialUSB.println("sending to RP... ");
-}
-
-void send_all_to_RP(){
-  String msgToRP1 = "thermo1";
-  String msgToRP2 = "thermo2";
-  String msgToRP3 = "thermo3";
-  String msgToRP4 = "thermo4";
-  String msgToRP5 = "thermo5";
-  String semiColon =";";
-  String comma=",";
-  String slash="/";
-  String thermo1String;
-  String thermo2String;
-  String thermo3String;
-  String thermo4String;
-  String thermo5String;
-  thermo1String=readSensor(PT100_Thermo1_pin);
-  thermo2String=readSensor(PT100_Thermo2_pin);
-  thermo3String=readSensor(PT100_Thermo3_pin);
-  thermo4String=readSensor(PT100_Thermo4_pin);
-  thermo5String=readSensor(PT100_Thermo5_pin);
-  int stringSize1 = msgToRP1.length() + thermo1String.length() + (String(dataTimeCounter)).length()+semiColon.length()*3;
-  int stringSize2 = msgToRP2.length() + thermo2String.length() + (String(dataTimeCounter)).length()+semiColon.length()*3;
-  int stringSize3 = msgToRP3.length() + thermo3String.length() + (String(dataTimeCounter)).length()+semiColon.length()*3;
-  int stringSize4 = msgToRP4.length() + thermo4String.length() + (String(dataTimeCounter)).length()+semiColon.length()*3;
-  int stringSize5 = msgToRP5.length() + thermo5String.length() + (String(dataTimeCounter)).length()+semiColon.length()*3;
-  int  stringSize=stringSize1+stringSize2+stringSize3+stringSize4+stringSize5+4*comma.length()+slash.length();
-
-  char payload_string[stringSize];
-  
-  memset(payload_string,0,sizeof(payload_string));
-  //thermo1;35.5;40
-  strcat(payload_string,msgToRP1.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,thermo1String.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  
-  strcat(payload_string,",");
-  //thermo1;35.5;40,thermo2;35.5;40
-  strcat(payload_string,msgToRP2.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,thermo2String.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  
-  strcat(payload_string,",");
-  //thermo1;35.5;40,thermo2;35.5;40,thermo3;35.5;40
-  strcat(payload_string,msgToRP3.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,thermo3String.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  
-  strcat(payload_string,",");
-  //thermo1;35.5;40,thermo2;35.5;40,thermo3;35.5;40,thermo4;35.5;40
-  strcat(payload_string,msgToRP4.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,thermo4String.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  
-  strcat(payload_string,",");
-  //thermo1;35.5;40,thermo2;35.5;40,thermo3;35.5;40,thermo4;35.5;40,thermo5;35.5;40
-  strcat(payload_string,msgToRP5.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,thermo5String.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  //thermo1;35.5;40,thermo2;35.5;40,thermo3;35.5;40,thermo4;35.5;40,thermo5;35.5;40
-  strcat(payload_string,"/");
-
-  SerialUSB.print("payload_string:");
-  SerialUSB.println(payload_string);
-  uint8_t payload_bytes[stringSize];
-  *payload_SensorData=*payload_bytes;
-  SerialUSB.print("payload_SensorData :");
-  for(int i=0;i<stringSize;i++){
-    payload_SensorData[i]=(uint8_t)payload_string[i];
-    SerialUSB.print(payload_SensorData[i]);
-    SerialUSB.print(" ");
-  }
-  
-  SerialUSB.println("");
-  send_SensorData_to_RP(payload_SensorData);
-  SerialUSB.println("sending to RP... ");
-}
-
-
-
-void send_SensorData_to_RP(uint8_t payload_tab[]) {   
-  xbee.send(zbTx);
-  //SerialUSB.print("zbTx.getFrameDataLength():");
-  //zbTx.getFrameData();
-  //SerialUSB.println(zbTx.getFrameData());
-  //zbTx.getFrameDataLength();
-}
-
 
 void sendData(){
   if(dataToSend){
