@@ -6,7 +6,7 @@ int sensorValue = 0;  // variable to store the value coming from the sensor
 // create the XBee object
 XBee xbee = XBee();
 //payload tableau d'octets
-uint8_t payload_SensorData[24];
+uint8_t payload_SensorData[50];
 //uint8_t * payload_SensorData;
 //allocation dynamique
 //char payload_SensorData_String[100];
@@ -109,8 +109,7 @@ void execute_RP_command(){
     }
 		if(strcmp(sensor.c_str(),"all")==0){
 			SerialUSB.println("sensor==all");
-			send_thermo1_to_RP();
-			send_thermo2_to_RP();
+			send_all_to_RP();
 		}
 	} 
 
@@ -170,6 +169,55 @@ void send_thermo2_to_RP(){
   //strcat(payload_string,(String(stringSize)).c_str());
   //strcat(payload_string,";");
   strcat(payload_string,msgToRP.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,thermo2String.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,(String(dataTimeCounter)).c_str());
+  strcat(payload_string,"/");
+//
+  SerialUSB.print("payload_string:");
+  SerialUSB.println(payload_string);
+  uint8_t payload_bytes[stringSize];
+  *payload_SensorData=*payload_bytes;
+  SerialUSB.print("payload_SensorData :");
+  for(int i=0;i<stringSize;i++){
+    payload_SensorData[i]=(uint8_t)payload_string[i];
+    SerialUSB.print(payload_SensorData[i]);
+    SerialUSB.print(" ");
+  }
+  
+  SerialUSB.println("");
+  send_SensorData_to_RP(payload_SensorData);
+  SerialUSB.println("sending to RP... ");
+}
+
+void send_all_to_RP(){
+  String msgToRP1 = "thermo1";
+  String msgToRP2 = "thermo2";
+  String PT100_reading;
+  String pipe =";";
+  String thermo1String;
+  String thermo2String;
+  thermo1String=readSensorPT100_Thermo1();
+  thermo2String=readSensorPT100_Thermo2();
+  int stringSize1 = msgToRP1.length() + thermo1String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
+  int stringSize2 = msgToRP2.length() + thermo2String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
+  int  stringSize=stringSize1+stringSize2;
+  //stringSize+=(String(stringSize)).length();
+//      SerialUSB.print("stringSize");
+//      SerialUSB.println(stringSize);
+  
+  char payload_string[stringSize];
+  memset(payload_string,0,sizeof(payload_string));
+  //strcat(payload_string,(String(stringSize)).c_str());
+  //strcat(payload_string,";");
+  strcat(payload_string,msgToRP1.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,thermo1String.c_str());
+  strcat(payload_string,";");
+  strcat(payload_string,(String(dataTimeCounter)).c_str());
+  strcat(payload_string,",");
+  strcat(payload_string,msgToRP2.c_str());
   strcat(payload_string,";");
   strcat(payload_string,thermo2String.c_str());
   strcat(payload_string,";");
