@@ -83,10 +83,10 @@ void parseCommand(){
       break;
     }     
   }
-  commandStringSize=commandStringIndex+1;
+  commandStringSize=commandStringIndex;
 //  SerialUSB.print("commandStringSize: ");
 //  SerialUSB.println(commandStringSize);
-  for(int a=commandStringSize;a<sizeof(payload_reading_data);a++){
+  for(int a=commandStringIndex+1;a<sizeof(payload_reading_data);a++){
     if(payload_reading_data[a]==';'){
       sensorStringIndex = a;
 //      SerialUSB.print("sensorStringIndex: ");
@@ -100,26 +100,30 @@ void parseCommand(){
   for(int b=sensorStringIndex+1;b<sizeof(payload_reading_data);b++){
     if(payload_reading_data[b]==';'){
       dataTimePeriodStringIndex = b;
-//      SerialUSB.print("dataTimePeriodStringIndex: ");
-//      SerialUSB.println(dataTimePeriodStringIndex);
+      //SerialUSB.print("dataTimePeriodStringIndex: ");
+      //SerialUSB.println(dataTimePeriodStringIndex);
       break;
     } 
   }
   dataTimePeriodStringSize=dataTimePeriodStringIndex-sensorStringIndex-1;
 //  SerialUSB.print("dataTimePeriodStringSize: ");
 //  SerialUSB.println(dataTimePeriodStringSize);
-  char tempArr1[commandStringSize];
+  char tempArr1[commandStringIndex];
   char tempArr2[sensorStringSize];
   char tempArr3[dataTimePeriodStringSize];
   //command=realloc(command,commandStringSize);
   //char sensor[sensorStringSize];
   //char dataTimePeriodString[dataTimePeriodStringSize];
-//  SerialUSB.print("payload_reading_data command:");
-  for(int k=0;k<commandStringSize-1;k++){
+  //SerialUSB.print("payload_reading_data command:");
+  for(int k=0;k<commandStringIndex;k++){
     tempArr1[k]=payload_reading_data[k];
-//    SerialUSB.print(payload_reading_data[k]);
+    //SerialUSB.print(payload_reading_data[k]);
   }
+  //SerialUSB.println();
+
   String tempString(tempArr1);
+
+  command="";
   command=tempString;
 //  SerialUSB.println("|"); 
 //  SerialUSB.print("payload_reading_data sensor:");
@@ -131,6 +135,7 @@ void parseCommand(){
     count++;
   }
   String tempString2(tempArr2);
+  sensor="";
   sensor =tempString2;
 //  SerialUSB.println("|");
 //  SerialUSB.print("payload_reading_data dataTimePeriodString:");
@@ -159,7 +164,7 @@ void parseCommand(){
  dataToSend=true;
  
 }
-String readSensor(int pin) {
+String readPT100Sensor(int pin) {
   long adcAverage = 0;
   int aveLength=800; //number of AnalogRead in 1 Arduinoloop
   float adcVal, volts;
@@ -189,9 +194,14 @@ String readSensor(int pin) {
 void execute_RP_command(){
   SerialUSB.println("execute_RP_command ");
   String sensorString="";
-	if(strcmp(command.c_str(),"stop")==0){
+	if(strcmp(command.c_str(),"stopAll")==0){
 		if(strcmp(sensor.c_str(),"all")==0){
+      dataTimeCounter =0;
+      dataTimePeriod = 0;
+      msgCount=0;
+      sensorString=prepare_send_stopAll_to_RP();
 			dataToSend=false;
+      
 			SerialUSB.println("Hard Stop!!");
 		}
 	}
@@ -229,7 +239,7 @@ String prepare_send_thermo1_to_RP(){
   String PT100_reading;
   String thermo1String;
   String semicolon =";";
-  thermo1String=readSensor(PT100_Thermo1_pin);
+  thermo1String=readPT100Sensor(PT100_Thermo1_pin);
   int stringSize = msgToRP1.length() + thermo1String.length() + (String(dataTimeCounter)).length()+semicolon.length()*3;
   //stringSize+=(String(stringSize)).length();
 //      SerialUSB.print("stringSize");
@@ -252,7 +262,7 @@ String prepare_send_thermo2_to_RP(){
   String PT100_reading;
   String pipe =";";
   String thermo2String;
-  thermo2String=readSensor(PT100_Thermo2_pin);
+  thermo2String=readPT100Sensor(PT100_Thermo2_pin);
   int stringSize = msgToRP2.length() + thermo2String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
   //stringSize+=(String(stringSize)).length();
 //      SerialUSB.print("stringSize");
@@ -275,7 +285,7 @@ String prepare_send_thermo3_to_RP(){
   String PT100_reading;
   String pipe =";";
   String thermo3String;
-  thermo3String=readSensor(PT100_Thermo3_pin);
+  thermo3String=readPT100Sensor(PT100_Thermo3_pin);
   int stringSize = msgToRP3.length() + thermo3String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
   //stringSize+=(String(stringSize)).length();
 //      SerialUSB.print("stringSize");
@@ -298,7 +308,7 @@ String prepare_send_thermo4_to_RP(){
   String PT100_reading;
   String pipe =";";
   String thermo4String;
-  thermo4String=readSensor(PT100_Thermo4_pin);
+  thermo4String=readPT100Sensor(PT100_Thermo4_pin);
   int stringSize = msgToRP4.length() + thermo4String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
   //stringSize+=(String(stringSize)).length();
 //      SerialUSB.print("stringSize");
@@ -321,7 +331,7 @@ String prepare_send_thermo5_to_RP(){
   String PT100_reading;
   String pipe =";";
   String thermo5String;
-  thermo5String=readSensor(PT100_Thermo5_pin);
+  thermo5String=readPT100Sensor(PT100_Thermo5_pin);
   int stringSize = msgToRP5.length() + thermo5String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
   //stringSize+=(String(stringSize)).length();
 //      SerialUSB.print("stringSize");
@@ -358,6 +368,16 @@ String prepare_send_all_to_RP(){
   msgtoSend.concat(",");
   msgtoSend.concat(thermo5msg);
   return msgtoSend;
+}
+
+String prepare_send_stopAll_to_RP(){
+  String msgToRP1 = "stopGetData;all;";
+  int stringSize = msgToRP1.length();
+  
+  char payload_string[stringSize];
+  memset(payload_string,0,sizeof(payload_string)); //initialize the array
+  strcat(payload_string,msgToRP1.c_str());
+  return payload_string;
 }
 
 void send_data_to_RP(String dataToSend){
@@ -403,7 +423,11 @@ void sendData(){
     return;
    }
 //     pending+=".";
-//     SerialUSB.print(pending);
+     SerialUSB.print("message ");
+     SerialUSB.print(msgCount);
+     SerialUSB.print("/");
+     SerialUSB.print(dataTimePeriod);
+     SerialUSB.println(" sent");
      //Send DATA to RP
      execute_RP_command();
      msgCount++;
