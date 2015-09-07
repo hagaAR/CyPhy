@@ -439,5 +439,5 @@ void loop (){
   receive_command_from_RP();
   sendData();
   Serial1.flush();
-  delay(100);
+  delay(1000);
 }
