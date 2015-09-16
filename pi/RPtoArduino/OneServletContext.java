@@ -17,9 +17,9 @@ public class OneServletContext
         context.addServlet(new ServletHolder(new HelloServlet()),"/*");
         context.addServlet(new ServletHolder(new HelloServlet("Buongiorno Mondo")),"/it/*");
         context.addServlet(new ServletHolder(new HelloServlet("Bonjour le Monde")),"/fr/*");
-        
-        MainAppServlet mainAppServlet = new MainAppServlet("Bonjour, activer MainApp");
-        context.addServlet(new ServletHolder(mainAppServlet),"/MainApp");
+
+		GetDataServlet getDataServlet = new GetDataServlet("afficher requête");
+		context.addServlet(new ServletHolder(getDataServlet),"/getData");
  
         server.start();
         server.join();

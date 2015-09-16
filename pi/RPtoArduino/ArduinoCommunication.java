@@ -24,6 +24,7 @@ public class ArduinoCommunication extends Observable {
 	String message="";
 	boolean messageComplete = true;
 	String buffer="";
+	boolean stopSending=false;
 	//static XBee xbee;
 	
 	
@@ -37,19 +38,19 @@ public class ArduinoCommunication extends Observable {
 		serial.open(serial.DEFAULT_COM_PORT, 9600);
 		
 		//System.out.println("Port Serie n°: "+serial.DEFAULT_COM_PORT);
-		 // create and register the serial data listener
+		
+		// create and register the serial data listener
         serial.addListener(new SerialDataListener() {
             @Override
             public void dataReceived(SerialDataEvent event) {
 				//serial.flush();
                 // print out the data received to the console
-                countingReceivedMsg+=1;
-                //System.out.print("msg #"+countingReceivedMsg+" ");
-                //System.out.printf(event.getData());
-                message = event.getData();
-                System.out.print("message = event.getData()  :");
-                System.out.println(message);
-                checkMessage();
+                if(!stopSending){
+					countingReceivedMsg+=1;
+					message="";
+					message = event.getData();
+					checkMessage();
+				}
                /* if(messageComplete){
 					setChanged();
 					notifyObservers(message);
@@ -113,10 +114,10 @@ public class ArduinoCommunication extends Observable {
 	
 	public void checkMessage(){
 		//handle messages
-		//System.out.println("");
-		//System.out.print("message received from Serial: ");
-		//System.out.print(message);
-		//System.out.println("");
+		System.out.println("============================");
+		System.out.print("message received from Serial: ");
+		System.out.print(message);
+		System.out.println("");
 		if(message.contains("/")){
 			System.out.println("message contains /");
 
@@ -132,9 +133,12 @@ public class ArduinoCommunication extends Observable {
 			}*/
 			if(!messageComplete){
 				System.out.println("message isnot complete");
+				System.out.print("buffer:");
+				System.out.println(buffer);
 				System.out.print("message:");
 				System.out.println(message);
 				message = buffer + message;
+				buffer="";
 				messageComplete = true;
 			}
 			
@@ -151,20 +155,36 @@ public class ArduinoCommunication extends Observable {
 				for(int k=0;k<msgList.length;k++){
 					String msg="";
 					msg=msgList[k];
-					if(checkSyntax(msg)){
+					if(containsSemiColomns(msg)){
 						System.out.println("every split is inserted in db");
 						System.out.println(msg);
 						setChanged();
 						notifyObservers(msg);
+						checkArduinoStopped(msg);
+						message="";
 					}
 				}
 			}else {
 				message = msgList[0];
-				System.out.println("message contains 0 or 1 /");
+				System.out.println("message contains 1 /");
 				System.out.print("message:");
 				System.out.println(message);
+				if(msgList.length>1){
+					buffer="";
+					for(int k=1;k<msgList.length;k++){
+						buffer +=msgList [k];
+						if(k!=msgList.length-1){
+							buffer +="/";
+						}
+					}
+					System.out.print("filling buffer:");
+					System.out.println(buffer);
+					messageComplete = false;
+				}
 				setChanged();
 				notifyObservers(message);
+				checkArduinoStopped(message);
+				message="";
 			}
 			
 			
@@ -172,13 +192,15 @@ public class ArduinoCommunication extends Observable {
 			System.out.println("message buffered & set to notComplete because doesnt end with /");
 			System.out.print("buffered:");
 			System.out.println(message);
+			buffer="";
 			buffer = message;
 			messageComplete= false;
+			message="";
 		}
-		//message = sensor + ";" + sensor_value_string;
+		
 	}
 	
-	private boolean checkSyntax(String msg){
+	private boolean containsSemiColomns(String msg){
 		if(msg.contains(";"))
 			return true;
 		return false;
@@ -190,17 +212,38 @@ public class ArduinoCommunication extends Observable {
 	
 	public void getDataFromThermo1(){
 		sendToArduinoATMode("getData;thermo1;1;");
-		//sendToArduinoATMode("getData;Thermo1");
-		//String receivedData = receiveData();
-		//return receiveData();
 	}
 	
 	public void getDataFromThermo1(int timePeriod){
 		sendToArduinoATMode("getData;thermo1;" + timePeriod+";");
-		//String receivedData = receiveData();
-		//return receiveData();
+	}
+	public void getDataFromThermo2(){
+		sendToArduinoATMode("getData;thermo2;1;");
 	}
 	
+	public void getDataFromThermo2(int timePeriod){
+		sendToArduinoATMode("getData;thermo2;" + timePeriod+";");
+	}
+	public void getDataFromAllSensors(){
+		sendToArduinoATMode("getData;all;1;");
+	}
+	
+	public void getDataFromAllSensors(int timePeriod){
+		sendToArduinoATMode("getData;all;" + timePeriod+";");
+	}
+	
+	public void stopSendingDataFromArduino(){
+		sendToArduinoATMode("stopAll;all;1;");
+		stopSending=true;
+	}
+	public void checkArduinoStopped(String msg){
+		if(msg.equals("stopGetData;all;")){
+			stopSending=false;
+		}
+	}
+	public boolean isCollectingData(){
+		return !stopSending;
+	}
 	//static public void synchroniseTime(){
 		//sentToArduinoATMode("setTime;"+ (new Date()).toString());
 	//}
