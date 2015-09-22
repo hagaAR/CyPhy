@@ -3,6 +3,7 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   pinMode(2,OUTPUT);
+  pinMode(3,OUTPUT);
 }
 
 void loop(){
@@ -11,13 +12,16 @@ void loop(){
 
     // the default PWM resolution
   analogWriteResolution(12);
-  analogWrite(2,4096);
+  analogWrite(2,4095);
+  analogWrite(3,2048);
   
-  int sensorVal = analogRead(A0);
-  Serial.print("Analog Read) : ");
-  //Serial.print(HIGH);
-   Serial.print("  ");
-  Serial.println(sensorVal);
+//  int sensorVal = analogRead(A0);
+//  Serial.print("Analog Read) : ");
+//  //Serial.print(HIGH);
+//   Serial.print("  ");
+//  Serial.println(sensorVal);
 
-  delay(807);
+  //delay(1007);
+//  analogWrite(2,3500);
+//  delay(1007);
 }

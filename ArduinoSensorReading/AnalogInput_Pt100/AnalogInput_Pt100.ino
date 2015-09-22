@@ -9,18 +9,19 @@ void loop() {
   int sensorValue;
   long adcAverage = 0;
   int aveLength=800; //number of AnalogRead in 1 Arduinoloop
-  float adcVal, volts;
+  float adcVal;
   float Temperature =0;
-  analogReadResolution(12);
+  analogReadResolution(10);
   
   for(int i=0; i<aveLength;i++){
     sensorValue = analogRead(sensorPin);
     adcAverage += sensorValue;
   }
   adcVal=(float)adcAverage/ (float)aveLength;
-  float voltage= adcVal * (3.3 / 4095.0);
-  
-  SerialUSB.print("voltage ");
+  float voltage= adcVal * (3.3 / 1023.0);
+   SerialUSB.print("adcVal : ");
+  SerialUSB.print(adcVal);
+  SerialUSB.print(" ; voltage ");
   SerialUSB.print(voltage);
   SerialUSB.print(" ; analogRead : ");
   SerialUSB.print(adcVal);
