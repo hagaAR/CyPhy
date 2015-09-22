@@ -1,13 +1,21 @@
 #include <XBee.h>
+#include <PID_v1.h>
 
 int PT100_thermocold_pin = A0;
 int PT100_thermomix_pin = A1;
 int PT100_thermohot_pin = A2;
-int PT100_flowmeter1_pin = A3;
-int PT100_flowmeter2_pin = A4;
-int svalve1_pin=2;
-int svalve2_pin=3;
+int flowmeter1_pin = A3;
+int flowmeter2_pin = A4;
+int svalve1_4mm_pin=2;
+int svalve2_3mm_pin=3;
 int sensorValue = 0;  // variable to store the value coming from the sensor
+
+double flowSetpoint, Input, Output; //Parameters for PID controller
+double Kp=0.1;
+double Ki=1;
+double Kd=0;
+PID valvePID(&Input, &Output, &flowSetpoint,Kp,Ki,Kd, DIRECT);
+
 // create the XBee object
 XBee xbee = XBee();
 //payload tableau d'octets
@@ -17,6 +25,12 @@ uint8_t payload_SensorData[100];
 //char payload_SensorData_String[100];
 char payload_reading_data[100];
 bool dataToSend=false;
+String command_cache = "";
+String sensor_cache= "";
+String valveAction="";
+double targetFlowValue;
+int dataTimePeriod_cache =0;
+int flowrateValue=0;
 String command = "";
 String sensor= "";
 char* dataTimePeriodString;
@@ -24,8 +38,6 @@ int dataTimeCounter=0;
 int dataTimePeriod =0;
 int msgCount=0;
 String pending="sending";
-
-int opening_percentage=0;
 
 // SH + SL Address of receiving XBee
 //@ du coordinateur ie raspberry pi
@@ -61,8 +73,6 @@ void receive_command_from_RP(){
             
       } 
     } else if (xbee.getResponse().isError()) {
-//      SerialUSB.print("Error reading packet.  Error code: ");
-//      SerialUSB.println(xbee.getResponse().getErrorCode());
     }
 }
 void parseCommand(){
@@ -75,155 +85,130 @@ void parseCommand(){
   int sensorStringSize=0;
   int dataTimePeriodStringSize=0;
   int dataTimePeriodStringIndex=0;
-   
-//  SerialUSB.print("payload_reading_data: ");
-//  SerialUSB.print(payload_reading_data);
-//  SerialUSB.print(" sizeof(payload_reading_data): ");
-//  SerialUSB.println(sizeof(payload_reading_data));
   
   for(int i=0;i<sizeof(payload_reading_data);i++){
     if(payload_reading_data[i]==';'){
       commandStringIndex = i;
-//      SerialUSB.print("commandStringIndex: ");
-//      SerialUSB.println(commandStringIndex);
       break;
     }     
   }
   commandStringSize=commandStringIndex;
-//  SerialUSB.print("commandStringSize: ");
-//  SerialUSB.println(commandStringSize);
   for(int a=commandStringIndex+1;a<sizeof(payload_reading_data);a++){
     if(payload_reading_data[a]==';'){
       sensorStringIndex = a;
-//      SerialUSB.print("sensorStringIndex: ");
-//      SerialUSB.println(sensorStringIndex);
       break;
     }     
   }
   sensorStringSize=sensorStringIndex-commandStringSize+1;
-//  SerialUSB.print("sensorStringSize: ");
-//  SerialUSB.println(sensorStringSize);
   for(int b=sensorStringIndex+1;b<sizeof(payload_reading_data);b++){
     if(payload_reading_data[b]==';'){
       dataTimePeriodStringIndex = b;
-      //SerialUSB.print("dataTimePeriodStringIndex: ");
-      //SerialUSB.println(dataTimePeriodStringIndex);
       break;
     } 
   }
   dataTimePeriodStringSize=dataTimePeriodStringIndex-sensorStringIndex-1;
-//  SerialUSB.print("dataTimePeriodStringSize: ");
-//  SerialUSB.println(dataTimePeriodStringSize);
   char tempArr1[commandStringIndex];
   char tempArr2[sensorStringSize];
   char tempArr3[dataTimePeriodStringSize];
-  //command=realloc(command,commandStringSize);
-  //char sensor[sensorStringSize];
-  //char dataTimePeriodString[dataTimePeriodStringSize];
-  //SerialUSB.print("payload_reading_data command:");
   for(int k=0;k<commandStringIndex;k++){
     tempArr1[k]=payload_reading_data[k];
-    //SerialUSB.print(payload_reading_data[k]);
   }
-  //SerialUSB.println();
-
   String tempString(tempArr1);
 
-  command="";
-  command=tempString;
-//  SerialUSB.println("|"); 
-//  SerialUSB.print("payload_reading_data sensor:");
+  command_cache="";
+  command_cache=tempString;
   int count=0;
   for(int g=commandStringIndex+1;g<sensorStringIndex;g++){
-    
     tempArr2[count]=payload_reading_data[g];
-    //SerialUSB.print(payload_reading_data[g]);
     count++;
   }
   String tempString2(tempArr2);
-  sensor="";
-  sensor =tempString2;
-//  SerialUSB.println("|");
-//  SerialUSB.print("payload_reading_data dataTimePeriodString:");
+  sensor_cache="";
+  sensor_cache =tempString2;
   int count2=0;
   for(int c=sensorStringIndex+1;c<dataTimePeriodStringIndex;c++){
     tempArr3[count2]=payload_reading_data[c];
-//    SerialUSB.print(payload_reading_data[c]);
     count2++;
-  }
-  //dataTimePeriodString=tempArr3;
-  
-  dataTimePeriod=atoi(tempArr3);
-  opening_percentage=dataTimePeriod;
-//  SerialUSB.println("|");
-//  SerialUSB.print("tempArr3: ");
-//  SerialUSB.println(tempArr3);
-//  SerialUSB.print("dataTimePeriod: ");
-//  SerialUSB.println(dataTimePeriod);
-//  dataTimePeriod=dataTimePeriodString.toInt();
-//  SerialUSB.print("dataTimePeriod: ");
-//  SerialUSB.print(dataTimePeriod);
-//  SerialUSB.println(" (s)");
-  SerialUSB.print("command: ");
-  SerialUSB.println(command);
-  SerialUSB.print("sensor: ");
-  SerialUSB.println(sensor);
+  }  
+  dataTimePeriod_cache=atoi(tempArr3);
+  SerialUSB.print("command_cache: ");
+  SerialUSB.println(command_cache);
+  SerialUSB.print("sensor_cache: ");
+  SerialUSB.println(sensor_cache);
  dataToSend=true;
  
 }
-String readSensor(int pin) {
+float readSensor(int pin) {
   long adcAverage = 0;
   int aveLength=800; //number of AnalogRead in 1 Arduinoloop
   float adcVal;
-  float Temperature,flow;
-  String Temperature_string;
-  //String stringPin="PT100_Thermo"+thermo_num+"_pin";
-  //int pin=&stringPin;
-  analogReadResolution(12);
+  float Temperature,flow,result;
+  analogReadResolution(10);
   
   for(int i=0; i<aveLength;i++){
     sensorValue = analogRead(pin);
     adcAverage += sensorValue;
   }
   adcVal=(float)adcAverage/ (float)aveLength;
-  float voltage= adcVal * (3.3 / 4095.0);
+  float voltage= adcVal * (3.3 / 1023.0);
   //reading PT100
-  if( pin==A0 || pin==A1 || pin==A2 ){
+  if( pin==PT100_thermocold_pin || pin==PT100_thermomix_pin || pin==PT100_thermohot_pin ){
 	  Temperature = (voltage*6250/165.1)-25;
 	  SerialUSB.print("Pin: ");
 	  SerialUSB.print(pin);
 	  SerialUSB.print(" Value PT100 °C: ");
 	  SerialUSB.println(Temperature);
-	  Temperature_string=(String)Temperature;
-	//  //accuracy gap : 0.10 °c
-	  return Temperature_string;
+	  result=Temperature;
+	//  //accuracy gap : 0.10 °c	  
   }
   //reading flow meter
-  if( pin==A3 || pin==A4 ){
+  if( pin==flowmeter1_pin || pin==flowmeter2_pin ){
 	  flow = (1250*voltage/165.1)-5;
 	  SerialUSB.print("Pin: ");
 	  SerialUSB.print(pin);
 	  SerialUSB.print(" Value Flow meter : ");
 	  SerialUSB.println(flow);
-	  Temperature_string=(String)flow;
-	//  //accuracy gap : 0.10 °c
-	  return Temperature_string;
+	  result=flow;	  
   }
-	return "";
-
+	return result;
 }
 
-void openValve(int valvePin,int openingpercent){
-  int openingValue=int(4095*(float)openingpercent/100);
-  analogWriteResolution(12);
-  analogWrite(valvePin,openingValue);
+void openValve(double targetted_flow){
+ long adcAverage = 0;
+ int aveLength=100; //number of AnalogRead in 1 Arduinoloop
+ float adcVal;
+ float Temperature,flow,result;
+ analogReadResolution(10);
+  
+  for(int i=0; i<aveLength;i++){
+    Input = analogRead(flowmeter1_pin);
+    adcAverage += Input;
+  }
+  Input=(float)adcAverage/ (float)aveLength;
+  flowSetpoint =1023*targetted_flow/14.642;
+  valvePID.Compute();
+  if(targetted_flow<7.0){
+    analogWrite(svalve1_4mm_pin,Output);
+    analogWrite(svalve2_3mm_pin,Output);
+  }
+  if(targetted_flow>=7,0 && targetted_flow<7.0){
+    analogWrite(svalve1_4mm_pin,Output);
+    analogWrite(svalve2_3mm_pin,Output);
+  }
+  if(targetted_flow>=9.0){
+    analogWrite(svalve1_4mm_pin,512);
+    analogWrite(svalve2_3mm_pin,Output);
+  }
 }
 
 
 void execute_RP_command(){
   SerialUSB.println("execute_RP_command ");
   String sensorString="";
-  if(strcmp(command.c_str(),"stopAll")==0){
+  if(strcmp(command_cache.c_str(),"stopAll")==0){
+	  command=command_cache;
+	  sensor=sensor_cache;
+	  dataTimePeriod=dataTimePeriod_cache;
     if(strcmp(sensor.c_str(),"all")==0){
       dataTimeCounter =0;
       dataTimePeriod = 0;
@@ -235,7 +220,10 @@ void execute_RP_command(){
     }
   }
   
-  if(strcmp(command.c_str(),"getData")==0){
+  if(strcmp(command_cache.c_str(),"getData")==0){
+	  command=command_cache;
+	  sensor=sensor_cache;
+	  dataTimePeriod=dataTimePeriod_cache;
     if(strcmp(sensor.c_str(),"thermocold")==0){
       sensorString=prepare_send_thermocold_to_RP();
     }
@@ -261,19 +249,9 @@ void execute_RP_command(){
     }
   }
 
-	if(strcmp(command.c_str(),"setActuator")==0){
-		if(strcmp(sensor.c_str(),"svalve1")==0){
-		  openValve(svalve1_pin,opening_percentage);
-		  sensorString=prepare_send_svalve1_to_RP();
-		}
-		///for thermomix
-		if(strcmp(sensor.c_str(),"svalve2")==0){
-		  openValve(svalve2_pin,opening_percentage);
-		  sensorString=prepare_send_svalve2_to_RP();
-		}
-		if(sensorString!=""){
-			send_data_to_RP(sensorString);
-		}
+	if(strcmp(command_cache.c_str(),"setActuator")==0){
+		valveAction="setValve";
+		targetFlowValue=(double)dataTimePeriod_cache;
 	}
 
 }
@@ -283,16 +261,10 @@ String prepare_send_thermocold_to_RP(){
   String PT100_reading;
   String thermocoldString;
   String semicolon =";";
-  thermocoldString=readSensor(PT100_thermocold_pin);
+  thermocoldString=(String)readSensor(PT100_thermocold_pin);
   int stringSize = msgToRP1.length() + thermocoldString.length() + (String(dataTimeCounter)).length()+semicolon.length()*3;
-  //stringSize+=(String(stringSize)).length();
-//      SerialUSB.print("stringSize");
-//      SerialUSB.println(stringSize);
-  
   char payload_string[stringSize];
   memset(payload_string,0,sizeof(payload_string)); //initialize the array
-  //strcat(payload_string,(String(stringSize)).c_str());
-  //strcat(payload_string,";");
   strcat(payload_string,msgToRP1.c_str());
   strcat(payload_string,";");
   strcat(payload_string,thermocoldString.c_str());
@@ -306,16 +278,10 @@ String prepare_send_thermomix_to_RP(){
   String PT100_reading;
   String pipe =";";
   String thermomixString;
-  thermomixString=readSensor(PT100_thermomix_pin);
-  int stringSize = msgToRP2.length() + thermomixString.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
-  //stringSize+=(String(stringSize)).length();
-//      SerialUSB.print("stringSize");
-//      SerialUSB.println(stringSize);
-  
+  thermomixString=(String)readSensor(PT100_thermomix_pin);
+  int stringSize = msgToRP2.length() + thermomixString.length() + (String(dataTimeCounter)).length()+pipe.length()*3;  
   char payload_string[stringSize];
   memset(payload_string,0,sizeof(payload_string));
-  //strcat(payload_string,(String(stringSize)).c_str());
-  //strcat(payload_string,";");
   strcat(payload_string,msgToRP2.c_str());
   strcat(payload_string,";");
   strcat(payload_string,thermomixString.c_str());
@@ -329,16 +295,10 @@ String prepare_send_thermohot_to_RP(){
   String PT100_reading;
   String pipe =";";
   String thermohotString;
-  thermohotString=readSensor(PT100_thermohot_pin);
-  int stringSize = msgToRP3.length() + thermohotString.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
-  //stringSize+=(String(stringSize)).length();
-//      SerialUSB.print("stringSize");
-//      SerialUSB.println(stringSize);
-  
+  thermohotString=(String)readSensor(PT100_thermohot_pin);
+  int stringSize = msgToRP3.length() + thermohotString.length() + (String(dataTimeCounter)).length()+pipe.length()*3;  
   char payload_string[stringSize];
   memset(payload_string,0,sizeof(payload_string));
-  //strcat(payload_string,(String(stringSize)).c_str());
-  //strcat(payload_string,";");
   strcat(payload_string,msgToRP3.c_str());
   strcat(payload_string,";");
   strcat(payload_string,thermohotString.c_str());
@@ -352,16 +312,10 @@ String prepare_send_flowmeter1_to_RP(){
   String PT100_reading;
   String pipe =";";
   String flowmeter1String;
-  flowmeter1String=readSensor(PT100_flowmeter1_pin);
+  flowmeter1String=(String)readSensor(flowmeter1_pin);
   int stringSize = msgToRP4.length() + flowmeter1String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
-  //stringSize+=(String(stringSize)).length();
-//      SerialUSB.print("stringSize");
-//      SerialUSB.println(stringSize);
-  
   char payload_string[stringSize];
   memset(payload_string,0,sizeof(payload_string));
-  //strcat(payload_string,(String(stringSize)).c_str());
-  //strcat(payload_string,";");
   strcat(payload_string,msgToRP4.c_str());
   strcat(payload_string,";");
   strcat(payload_string,flowmeter1String.c_str());
@@ -375,16 +329,10 @@ String prepare_send_flowmeter2_to_RP(){
   String PT100_reading;
   String pipe =";";
   String flowmeter2String;
-  flowmeter2String=readSensor(PT100_flowmeter2_pin);
+  flowmeter2String=(String)readSensor(flowmeter2_pin);
   int stringSize = msgToRP5.length() + flowmeter2String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
-  //stringSize+=(String(stringSize)).length();
-//      SerialUSB.print("stringSize");
-//      SerialUSB.println(stringSize);
-  
   char payload_string[stringSize];
   memset(payload_string,0,sizeof(payload_string));
-  //strcat(payload_string,(String(stringSize)).c_str());
-  //strcat(payload_string,";");
   strcat(payload_string,msgToRP5.c_str());
   strcat(payload_string,";");
   strcat(payload_string,flowmeter2String.c_str());
@@ -424,55 +372,11 @@ String prepare_send_stopAll_to_RP(){
   return payload_string;
 }
 
-String prepare_send_svalve1_to_RP(){
-  String msgToRP1 = "svalve1";
-  String opening_percentage1;
-  String semicolon =";";
-  opening_percentage1=String(opening_percentage);
-  int stringSize = msgToRP1.length() + opening_percentage1.length() + (String(dataTimeCounter)).length()+semicolon.length()*3;
-  //stringSize+=(String(stringSize)).length();
-//      SerialUSB.print("stringSize");
-//      SerialUSB.println(stringSize);
-  
-  char payload_string[stringSize];
-  memset(payload_string,0,sizeof(payload_string)); //initialize the array
-  //strcat(payload_string,(String(stringSize)).c_str());
-  //strcat(payload_string,";");
-  strcat(payload_string,msgToRP1.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,opening_percentage1.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  return payload_string;
-}
-String prepare_send_svalve2_to_RP(){
-  String msgToRP2 = "svalve2";
-  String opening_percentage2;
-  String semicolon =";";
-  opening_percentage2=String(opening_percentage);
-  int stringSize = msgToRP2.length() + opening_percentage2.length() + (String(dataTimeCounter)).length()+semicolon.length()*3;
-  //stringSize+=(String(stringSize)).length();
-//      SerialUSB.print("stringSize");
-//      SerialUSB.println(stringSize);
-  
-  char payload_string[stringSize];
-  memset(payload_string,0,sizeof(payload_string)); //initialize the array
-  //strcat(payload_string,(String(stringSize)).c_str());
-  //strcat(payload_string,";");
-  strcat(payload_string,msgToRP2.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,opening_percentage2.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  return payload_string;
-}
 
 
 
 
 void send_data_to_RP(String dataToSend){
-  
-  //int charArraySize=sizeof(prepare_send_thermocold_to_RP());
   String payload_charArray;
   payload_charArray=dataToSend;
   payload_charArray.concat("/");
@@ -490,15 +394,12 @@ void send_data_to_RP(String dataToSend){
   }
   
   SerialUSB.println("");
-  //send_SensorData_to_RP(payload_SensorData);
   xbee.send(zbTx);
  SerialUSB.println("sending to RP... ");
 }
 
 void sendData(){
   if(dataToSend){
-//    SerialUSB.print(" sendData  command:");
-//    SerialUSB.println(command);
    if(dataTimeCounter == dataTimePeriod){
     
     SerialUSB.print("finish sending ");
@@ -506,30 +407,29 @@ void sendData(){
     SerialUSB.println(" messages!");
     dataTimeCounter =0;
     dataTimePeriod = 0;
-	opening_percentage=0;
   //      command="";
   //      sensor="";
     dataToSend=false;
     msgCount=0;
     return;
    }
-//     pending+=".";
-     SerialUSB.print("message ");
-     SerialUSB.print(msgCount);
-     SerialUSB.print("/");
-     SerialUSB.print(dataTimePeriod);
-     SerialUSB.println(" sent");
-     //Send DATA to RP
-     execute_RP_command();
-     msgCount++;
-     dataTimeCounter++;
+	 SerialUSB.print("message ");
+	 SerialUSB.print(msgCount);
+	 SerialUSB.print("/");
+	 SerialUSB.print(dataTimePeriod);
+	 SerialUSB.println(" sent");
+	 //Send DATA to RP
+	 execute_RP_command();
+	 msgCount++;
+	 dataTimeCounter++;
   }
 }
 
 void loop (){
   receive_command_from_RP();
   sendData();
+  openValve(targetFlowValue);
   Serial1.flush();
-  delay(100);
+  delay(1000);
 }
 
