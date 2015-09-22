@@ -40,11 +40,12 @@ public class MainApp {
 	}
 	
 	static public void fillSensorsTable () {	
-		dbcon.sensors_table_new_insert(1,"thermo1","celcius");
-		dbcon.sensors_table_new_insert(2,"thermo2","celcius");
-		dbcon.sensors_table_new_insert(3,"thermo3","celcius");
-		dbcon.sensors_table_new_insert(4,"thermo4","celcius");
-		dbcon.sensors_table_new_insert(5,"thermo5","celcius");
+		dbcon.sensors_table_new_insert(1,"thermocold","celcius");
+		dbcon.sensors_table_new_insert(2,"thermomix","celcius");
+		dbcon.sensors_table_new_insert(3,"thermohot","celcius");
+		//flow in Litres per meter
+		dbcon.sensors_table_new_insert(4,"flowmeter1","lpm");
+		dbcon.sensors_table_new_insert(5,"flowmeter2","lpm");
 	}
 	
 	static public void setUpArduinoCommunication(){
@@ -227,12 +228,12 @@ public class MainApp {
 		//Begin communication with Arduino & Db
 		setUpArduinoCommunication();		
 		setUpDataBase ();
-		String date1="2015-09-01";
-		String date2="2015-09-05";
-		String datePlusTardString="2015-09-02 14:19:00";
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-		Document resultXMLDocument;
-		Date nowDate= new Date();
+		//String date1="2015-09-01";
+		//String date2="2015-09-05";
+		//String datePlusTardString="2015-09-02 14:19:00";
+		//SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+		//Document resultXMLDocument;
+		//Date nowDate= new Date();
 		
 		//Re-initialize sensors db
 		//initialiseSensorsTable ();
@@ -255,12 +256,19 @@ public class MainApp {
 		//ask Arduino for data from thermo2
 		//getDataSampleFromThermo2_insertInSensorDataTable (4);
 		//ask Arduino for data from all sensors
-		//getDataSampleFromAllSensors_insertInSensorDataTable (120);
+		getDataSampleFromAllSensors_insertInSensorDataTable (30);
 		//getDataSampleFromAllSensors_insertInSensorDataTable (1200);
-		//Thread.sleep(3000);
+		Thread.sleep(10000);
+		com.setValve((float)0.101,5);
+		Thread.sleep(10000);
+		com.setValve((float)0.101,5);
+		//set actuator
+		
+		
+		
 		//Stop arduino sendings
 		//stopArduinoSending ();
-		resultXMLDocument = exportSensorDataTableToXMLDocument (date1,date2);
+		//resultXMLDocument = exportSensorDataTableToXMLDocument (date1,date2);
 		
 		//Logger logRoot = Logger.getRootLogger();
 		//ConsoleAppender ca = new ConsoleAppender();

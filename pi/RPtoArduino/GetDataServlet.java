@@ -20,8 +20,8 @@ public class GetDataServlet extends HttpServlet
 				
 		mainApp.setUpDataBase ();
 
-		String date1="2015-09-01";
-		String date2="2015-09-06";
+		String date1=request.getParameter("date_from");
+		String date2=request.getParameter("date_to");
 		Document resultXMLDocument;
 		String resultXMLDocumentString;
 		resultXMLDocument=mainApp.exportSensorDataTableToXMLDocument (date1,date2);
