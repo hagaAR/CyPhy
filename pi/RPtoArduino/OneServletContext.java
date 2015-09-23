@@ -21,6 +21,12 @@ public class OneServletContext
 		GetDataServlet getDataServlet = new GetDataServlet("afficher requête");
 		context.addServlet(new ServletHolder(getDataServlet),"/getData");
  
+		setValveServlet setValveServlet1 = new setValveServlet("afficher requête");
+		context.addServlet(new ServletHolder(setValveServlet1),"/setValve");
+		
+		CollectDataServlet collectDataServlet = new CollectDataServlet("afficher requête");
+		context.addServlet(new ServletHolder(collectDataServlet),"/collectData");
+ 
         server.start();
         server.join();
     }

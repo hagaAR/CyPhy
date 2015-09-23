@@ -4,6 +4,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import java.io.IOException;
 import org.w3c.dom.Document;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class GetDataServlet extends HttpServlet
 {
@@ -22,6 +24,12 @@ public class GetDataServlet extends HttpServlet
 
 		String date1=request.getParameter("date_from");
 		String date2=request.getParameter("date_to");
+		if(date1==null || date2==null){
+			Date today= new Date();
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+			date1=df.format(today);
+			date2=date1;
+		}
 		Document resultXMLDocument;
 		String resultXMLDocumentString;
 		resultXMLDocument=mainApp.exportSensorDataTableToXMLDocument (date1,date2);

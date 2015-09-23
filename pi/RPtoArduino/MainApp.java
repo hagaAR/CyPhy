@@ -219,10 +219,6 @@ public class MainApp {
 	static public boolean isCollectingDataFromArduino () {		
 		return com.isCollectingData();
 	}
-	
-	static public void synchroniseTime(Date syncDate){
-		
-	}
 		
 	public static void main (String args[])  throws InterruptedException {
 		//Begin communication with Arduino & Db
