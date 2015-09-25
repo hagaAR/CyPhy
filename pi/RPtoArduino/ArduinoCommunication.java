@@ -232,8 +232,8 @@ public class ArduinoCommunication extends Observable {
 		sendToArduinoATMode("getData;all;" + timePeriod+";");
 	}
 	
-	public void setValve(float kWh,int flowSpeed){
-		sendToArduinoATMode("setValve;"+kWh+";" + flowSpeed+";");
+	public void setValve(float kWh,float flowSpeed){
+		sendToArduinoATMode("setValv;"+kWh+";" + flowSpeed+";");
 	}
 	
 	public void stopSendingDataFromArduino(){

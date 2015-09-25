@@ -4,6 +4,8 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Timestamp;
 
+import java.util.*;
+import java.text.SimpleDateFormat;
 import java.io.File;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -165,8 +167,8 @@ public class DBConnexion {
 		//not decided what variables types
 		sql_query="SELECT sd.*,s.* FROM sensor_data sd"
 			+" INNER JOIN sensors s on sd.sensor_id=s.id"
-			+" WHERE sd.timestamp >=TO_TIMESTAMP('"+dateDebut+"', 'yyyy-mm-dd hh:mm:ss')" 
-				+" AND sd.timestamp<TO_TIMESTAMP('"+dateFin+"', 'yyyy-mm-dd hh:mm:ss')";
+			+" WHERE sd.timestamp >=TO_TIMESTAMP('"+dateDebut+"', 'yyyy-MM-dd hh:mm:ss')" 
+				+" AND sd.timestamp<TO_TIMESTAMP('"+dateFin+"', 'yyyy-MM-dd hh:mm:ss')";
 
 		try{
 			statement = con.createStatement();
@@ -192,16 +194,29 @@ public class DBConnexion {
 		String sql_query;
 		Statement statement=null;
 		ResultSet rs;
+		Timestamp timestampFrom =null;
+		Timestamp timestampTo =null;
+		try{
+			SimpleDateFormat format = new SimpleDateFormat("YY-MM-dd hh:mm:ss");
+			Date dateFrom = format.parse(dateDebut);
+			timestampFrom = new Timestamp(dateFrom.getTime());
+			Date dateTo = format.parse(dateFin);
+			timestampTo = new Timestamp(dateTo.getTime());
+		}catch(Exception e){
+			e.printStackTrace();
+			System.err.println(e.getClass().getName()+": "+e.getMessage());
+			System.exit(0);
+		}
 		System.out.print("show table: sensor_data ");
 		System.out.println("between "+dateDebut+" and "+dateFin);
 		System.out.println("sensor_id | value | timestamp");
 
 		//timestamp format: yyyy-mm-dd hh:mm:ss
-		//not decided what variables types
+		//not decideTimestamp timestamp = new Timestamp(timeStamp+ (1000*Integer.parseInt(dataArray[2])));d what variables types
 		sql_query="SELECT sd.*,s.* FROM sensor_data sd"
 			+" INNER JOIN sensors s on sd.sensor_id=s.id"
-			+" WHERE sd.timestamp >=TO_TIMESTAMP('"+dateDebut+"', 'yyyy-mm-dd hh:mm:ss')" 
-				+" AND sd.timestamp<=TO_TIMESTAMP('"+dateFin+"', 'yyyy-mm-dd hh:mm:ss')";
+			+" WHERE sd.timestamp >='" + timestampFrom
+				+"' AND sd.timestamp<='"+timestampTo+"'";
 		Document doc;
 		
 		
@@ -291,8 +306,8 @@ public class DBConnexion {
 		//not decided what variables types
 		sql_query="SELECT sd.*,s.* FROM sensor_data sd"
 			+" INNER JOIN sensors s on sd.sensor_id=s.id"
-			+" WHERE sd.timestamp >=TO_TIMESTAMP('"+dateDebut+"', 'yyyy-mm-dd hh:mm:ss')" 
-				+" AND sd.timestamp<=TO_TIMESTAMP('"+dateFin+"', 'yyyy-mm-dd hh:mm:ss')";
+			+" WHERE sd.timestamp >=TO_TIMESTAMP('"+dateDebut+"', 'yyyy-MM-dd hh:mm:ss')" 
+				+" AND sd.timestamp<=TO_TIMESTAMP('"+dateFin+"', 'yyyy-MM-dd hh:mm:ss')";
 		
 		try{
 			statement = con.createStatement();

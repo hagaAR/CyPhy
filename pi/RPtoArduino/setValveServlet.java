@@ -28,7 +28,7 @@ public class setValveServlet extends HttpServlet
 		}
 		float kWh = Float.parseFloat(useful_energy);
 		System.out.println(kWh);
-		int water_flow_rate = Integer.parseInt(water_flow_rate_string);
+		float water_flow_rate = Float.parseFloat(water_flow_rate_string);
 		mainApp.com.setValve(kWh,water_flow_rate);
 
         response.setContentType("text/html");

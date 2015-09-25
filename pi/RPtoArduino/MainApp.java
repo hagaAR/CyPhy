@@ -25,7 +25,7 @@ public class MainApp {
 	
 	static ArduinoCommunication com;
 	static DBConnexion dbcon;
-	static long timeStamp;
+	static long timeStamp =0;
 	static public void setUpDataBase () {	
 		dbcon = new DBConnexion("CPS","haga","a");
 		dbcon.connect();
@@ -60,36 +60,19 @@ public class MainApp {
 	}
 	
 	static public void insertData(String data){
-		//System.out.print("data:");
-		//System.out.println(data);
 		byte octet0= 0;
-		//System.out.print("Char Array dataByteArray:");
 		byte [] dataByteArray=data.getBytes();
-		//System.out.println(dataByteArray);
 		int first0Index=0;
 		byte [] newDataByteArray=dataByteArray;
-		//System.out.println("dataByteArray");
-		//for(byte c:newDataByteArray){
-			//System.out.print(c);
-			//System.out.print(" ");
-		//}
-		//System.out.println("");
 		for(int k=0;k<dataByteArray.length;k++){
 			if(dataByteArray[k]==octet0){
 				first0Index=k;
 			}
 		}
-		//System.out.print("first0Index :");
-		//System.out.println(first0Index);
 		if(first0Index>0)
 			newDataByteArray=Arrays.copyOfRange(newDataByteArray,first0Index+1,dataByteArray.length);
 				
-		System.out.println("newDataByteArray");
-		for(byte c:newDataByteArray){
-			System.out.print(c);
-			System.out.print(" ");
-		}
-		System.out.println("");
+	
 		data=new String(newDataByteArray);
 		//System.out.print("new data:");
 		//System.out.println(data);
@@ -106,7 +89,9 @@ public class MainApp {
 			}
 
 			String resultFromSelect;
-			Timestamp timestamp = new Timestamp(timeStamp+ (1000*Integer.parseInt(dataArray[2])));
+			Timestamp timestamp = new Timestamp(timeStamp);//+ (1000*Integer.parseInt(dataArray[2])));
+			
+			System.out.println(new Date(timeStamp));
 			int sensorId = dbcon.getSensorID(dataArray[0]);
 			if(sensorId == -1){
 				String dataLog2="";
@@ -120,6 +105,7 @@ public class MainApp {
 			//logger.debug("Insertion-data: ");
 			//logger.debug(data);
 		}
+		timeStamp+= 1000;
 	}
 
 	
@@ -175,12 +161,23 @@ public class MainApp {
 		com.getDataFromAllSensors();
 	}	
 	static public void getDataSampleFromAllSensors_insertInSensorDataTable (int timeDataPeriod) {	
-		timeStamp = new Date().getTime();	
+		if(timeStamp==0)
+			timeStamp = new Date().getTime();	
 		com.getDataFromAllSensors(timeDataPeriod);	
 	}
 	
 	static public void startDataCollection (Date startDate, int timeDataPeriod) {	
-		try{
+		timeStamp = startDate.getTime();
+		for(int i=0;i<timeDataPeriod;i++){
+			getDataSampleFromAllSensors_insertInSensorDataTable (1);
+			try{
+				Thread.sleep(1000);
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+		
+		/*try{
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 			//Date formattedStartDate = dateFormat.format(startDate);
 			Date nowDate= new Date();
@@ -201,12 +198,12 @@ public class MainApp {
 				System.out.println("startDataCollection() -------Waiting : "+waitingTimeBeforeStart+"ms");
 				Thread.sleep(waitingTimeBeforeStart);
 			//}
-			timeStamp = new Date().getTime();	
+			timeStamp = startDate.getTime(); //new Date().getTime();	
 			System.out.println("startDataCollection() -------Go for "+timeDataPeriod+" seconds");
 			com.getDataFromAllSensors(timeDataPeriod);
 		} catch(Exception e){
 			e.printStackTrace();
-		}	
+		}	*/
 	}
 	
 	static public void stopArduinoSending () {
@@ -219,6 +216,7 @@ public class MainApp {
 	static public boolean isCollectingDataFromArduino () {		
 		return com.isCollectingData();
 	}
+	
 		
 	public static void main (String args[])  throws InterruptedException {
 		//Begin communication with Arduino & Db
@@ -252,12 +250,24 @@ public class MainApp {
 		//ask Arduino for data from thermo2
 		//getDataSampleFromThermo2_insertInSensorDataTable (4);
 		//ask Arduino for data from all sensors
-		getDataSampleFromAllSensors_insertInSensorDataTable (30);
+		
+		initialiseSensorDataTable ();
+		
+		//com.setValve((float)0.101,(float)4);
+		
+		
+		//for(int i=0;i<20;i++){
+			//getDataSampleFromAllSensors_insertInSensorDataTable (1);
+			//Thread.sleep(1000);
+		//}
+		//Thread.sleep(3000);
+		//com.setValve((float)0,0);
+		
 		//getDataSampleFromAllSensors_insertInSensorDataTable (1200);
-		Thread.sleep(10000);
-		com.setValve((float)0.101,5);
-		Thread.sleep(10000);
-		com.setValve((float)0.101,5);
+		//Thread.sleep(10000);
+		//com.setValve((float)0.101,5);
+		//Thread.sleep(10000);
+		//com.setValve((float)0.101,5);
 		//set actuator
 		
 		

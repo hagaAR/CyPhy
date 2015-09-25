@@ -21,12 +21,15 @@ public class GetDataServlet extends HttpServlet
 		MainApp mainApp = new MainApp();
 				
 		mainApp.setUpDataBase ();
-
-		String date1=request.getParameter("date_from");
-		String date2=request.getParameter("date_to");
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+		String date1;//=request.getParameter("date_from");
+		String date2;//=request.getParameter("date_to");
+		Date dateFrom= new Date(Long.parseLong(request.getParameter("date_from")));
+		Date dateTo= new Date(Long.parseLong(request.getParameter("date_to")));
+		date1=df.format(dateFrom);
+		date2=df.format(dateTo);
 		if(date1==null || date2==null){
 			Date today= new Date();
-			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 			date1=df.format(today);
 			date2=date1;
 		}

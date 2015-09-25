@@ -22,14 +22,15 @@ public class CollectDataServlet extends HttpServlet
 		mainApp.setUpDataBase ();
 		mainApp.setUpArduinoCommunication ();
 		try{
-			String startDateString=request.getParameter("start_date");
+			
+			String startDateString;//=request.getParameter("start_date");
 			int dataTimePeriod=Integer.parseInt(request.getParameter("period"));
 			
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-			Date startDate=new Date();
-			if(startDateString !=null){
-				startDate=sdf.parse(startDateString);
-			}
+			Date startDate=new Date(Long.parseLong(request.getParameter("start_date")));
+			//if(startDateString !=null){
+				//startDate=sdf.parse(dateFrom);
+			//}
 			mainApp.startDataCollection(startDate,dataTimePeriod);
 			response.setContentType("text/html");
 			response.setStatus(HttpServletResponse.SC_OK);
