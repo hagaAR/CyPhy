@@ -12,25 +12,26 @@ int svalve2_3mm_pin=3;
 double targetted_energy;
 String sensorDataStringToSendToRP="";
 bool dataToSend=false;
+bool openValves=false;
 String command_cache = "";
 String sensor_cache= "";
 String valveAction="";
 double targetFlowValue;
 int dataTimePeriod_cache =0;
 int flowrateValue=0;
-String command = "";
-String sensor= "";
 char* dataTimePeriodString;
 int dataTimeCounter=0;
 int dataTimePeriod =0;
 int msgCount=0;
 boolean receivedActuationCommand=false;
 
-double flowSetpoint, Input, Output; //Parameters for PID controller
+double Setpoint10bit=0;
+double Input, Output; //Parameters for PID controller
+double Q=0;
 double Kp=0.1;
 double Ki=1;
 double Kd=0;
-PID valvePID(&Input, &Output, &flowSetpoint,Kp,Ki,Kd, DIRECT);
+PID valvePID(&Input, &Output, &Setpoint10bit,Kp,Ki,Kd, DIRECT);
 
 //payload tableau d'octets
 uint8_t payload_SensorData[100];
@@ -51,98 +52,84 @@ void setup() {
   //SerialUSB.begin(9600);
   Serial1.begin(9600);
   Serial1.flush();
+  analogWriteResolution(10);
   xbee.setSerial(Serial1);
-  pinMode(2,OUTPUT);
-  pinMode(3,OUTPUT);
+  openValves=false;
+  Input = analogRead(flowmeter2_mix_FS3_pin);
+  valvePID.SetMode(AUTOMATIC);
+
+  pinMode(svalve1_4mm_pin,OUTPUT);
+  pinMode(svalve2_3mm_pin,OUTPUT);
+  
 }
  ///
  ///functions to read/set sensors/actuators
-float readSensor(int pin) {
+double readSensor(int pin) {
   long adcAverage = 0;
   int aveLength=800; //number of AnalogRead in 1 Arduinoloop
-  float adcVal;
-  float Temperature,flow,result;
+  double adcVal;
+  double Temperature,flow,result;
   int sensorValue = 0;  // variable to store the value coming from the sensor
   analogReadResolution(10);
   for(int i=0; i<aveLength;i++){
     sensorValue = analogRead(pin);
     adcAverage += sensorValue;
   }
-  adcVal=(float)adcAverage/ (float)aveLength;
-  float voltage= adcVal * (3.3 / 1023.0);
+  adcVal=(double)adcAverage/ (double)aveLength;
+  double voltage= adcVal * (3.3 / 1023.0);
   //reading PT100
   if( pin==thermocold_pin || pin==thermomix_pin || pin==thermohot_pin ){
     Temperature = (voltage*6250/165.1)-25;
-    SerialUSB.print("Pin: ");
-    SerialUSB.print(String(pin));
-    SerialUSB.print(" Temperature °C: ");
-    SerialUSB.println(Temperature);
+//    SerialUSB.print("Pin: ");
+//    SerialUSB.print(String(pin));
+//    SerialUSB.print(" Temperature °C: ");
+//    SerialUSB.println(Temperature);
     result=Temperature;
   //  //accuracy gap : 0.10 °c    
   }
   //reading flow meter
   if( pin==flowmeter1_pin || pin==flowmeter2_mix_FS3_pin ){
     flow = (1250*voltage/165.1)-5;
-    SerialUSB.print("Pin: ");
-    SerialUSB.print(String(pin));
-    SerialUSB.print(" Value Flow meter : ");
-    SerialUSB.println(flow);
+//    SerialUSB.print("Pin: ");
+//    SerialUSB.print(String(pin));
+//    SerialUSB.print(" Value Flow meter : ");
+//    SerialUSB.println(flow);
     result=flow;    
   }
   return result;
 }
 void openValve(double targetted_flow){
  long adcAverage = 0;
- int aveLength=100; //number of AnalogRead in 1 Arduinoloop
- float adcVal;
- float Temperature,flow,result;
+ int aveLength=500; //number of AnalogRead in 1 Arduinoloop
+ double Temperature,flow,result;
+ int thresholdValve1=189;//=759;for 0-1024
+ int thresholdValve2=195;//=783;
  analogReadResolution(10);//quantified in 10 bits 0 to1023
- 
-  for(int i=0; i<aveLength;i++){
-    Input = analogRead(flowmeter1_pin);
-    adcAverage += Input;
+ analogWriteResolution(10);
+ Setpoint10bit=(targetted_flow+5)*165*1023/(3.3*1250);
+ valvePID.SetOutputLimits(785,1024);
+ for(int k=0;k<aveLength;k++){
+    Input = analogRead(A4);
+    adcAverage+=Input;
   }
-  Input=(float)adcAverage/ (float)aveLength;
-  SerialUSB.print("openValve : ");
-  SerialUSB.print("targetted_flow : ");
-  SerialUSB.print(targetted_flow);
-  SerialUSB.print("  Input (0 to 1024): ");
-  SerialUSB.print(Input);
-  flowSetpoint =1023*targetted_flow/14.642;// 14.642mA max intensity with arduino+resistance
-  SerialUSB.print("  flowSetpoint : ");
-  SerialUSB.print(flowSetpoint);
+  Input = (double)adcAverage/(double)aveLength;
   valvePID.Compute();
-  SerialUSB.print("  Output : ");
-  SerialUSB.println(Output);
-  if(targetted_flow<7.0){
-    analogWrite(svalve1_4mm_pin,0);
-    analogWrite(svalve2_3mm_pin,Output);
-  }
-  if(targetted_flow>=7,0 && targetted_flow<7.0){
-    analogWrite(svalve1_4mm_pin,Output);
-    analogWrite(svalve2_3mm_pin,0);
-  }
-  if(targetted_flow>=9.0){
-    analogWrite(svalve1_4mm_pin,512);
-    analogWrite(svalve2_3mm_pin,Output);
-  }
-  
-  if(targetted_flow!=0){
-	SerialUSB.print("targetted_flow : ");
-    SerialUSB.println(targetted_flow);
-  }
+  analogWrite(svalve2_3mm_pin,Output);
+//  SerialUSB.print("Input :");
+//  SerialUSB.print(Input);
+  SerialUSB.print(" Output :");
+  SerialUSB.print(Output);
+  SerialUSB.print(" ");
+//  
 }
 
-void openValveManually50percent(){
-  analogWrite(svalve1_4mm_pin,512);
-  analogWrite(svalve2_3mm_pin,512);
-}
 void closeValve(){
   openValve(0);
+  analogWrite(svalve2_3mm_pin,0);
 }
 
 double calculateEnergy(){
-  float mix_temperature,mixFlowValue;
+  double mix_temperature,mixFlowValue;
   double Cp=4160.35;
   double Q;
   double rho=995.71;
@@ -151,116 +138,71 @@ double calculateEnergy(){
   mixFlowValue=mixFlowValue*0.001/60;
   mix_temperature = readSensor(thermomix_pin);
   mix_temperature=mix_temperature+274.15;
-  Q=Cp*mix_temperature*rho*mixFlowValue*timing;
+  Q=Cp*mix_temperature*mixFlowValue*timing;
   Q=Q/1000;
   
   return Q;//should be in kW.h
 }
 void setValveActuation(){
-  double P,Q,mixFlowValue;
-  P=calculateEnergy();
-  Q=P/3600; //kW.h
-  SerialUSB.print("Q energy : ");
-  SerialUSB.println(Q);
-  openValve(targetFlowValue);
-  mixFlowValue = readSensor(flowmeter2_mix_FS3_pin);
-  if(mixFlowValue<0.5){
-    openValveManually50percent();
-  }
-  if(Q>=targetted_energy){
-    closeValve();
-	SerialUSB.println("closeValve()");
+  double P,mixFlowValue;
+  if(openValves){
+    P=calculateEnergy();
+    Q+=P/3600; //kW.h
+    SerialUSB.print("Q energy : ");
+    SerialUSB.println(Q);
+    openValve(targetFlowValue);
+    mixFlowValue = readSensor(flowmeter2_mix_FS3_pin);
+   if(Q>=targetted_energy){
+      closeValve();
+      openValves=false;
+    SerialUSB.println("closeValve()");
+    Q=0;
+    }
   }
 }
 ////
 //// functions to send messages to RP
-String prepare_send_thermocold_to_RP(){
-  String msgToRP1 = "thermocold";
-  String PT100_reading;
-  String thermocoldString;
+String prepare_send_sensorData_to_RP(int pin){
+  String msgToRP = "";
+  String sensorDataString="";
   String semicolon =";";
-  thermocoldString=(String)readSensor(thermocold_pin);
-  int stringSize = msgToRP1.length() + thermocoldString.length() + (String(dataTimeCounter)).length()+semicolon.length()*3;
+  if(pin==thermocold_pin){
+	msgToRP = "thermocold";
+	sensorDataString=(String)readSensor(pin);
+  }
+  if(pin==thermomix_pin){
+	msgToRP = "thermomix";
+	sensorDataString=(String)readSensor(pin);
+  }
+  if(pin==thermohot_pin){
+	msgToRP = "thermohot";
+	sensorDataString=(String)readSensor(pin);
+  }
+  if(pin==flowmeter1_pin){
+	msgToRP = "flowmeter1";
+	sensorDataString=(String)readSensor(pin);
+  }
+  if(pin==flowmeter2_mix_FS3_pin){
+	msgToRP = "flowmeter2";
+	sensorDataString=(String)readSensor(pin);
+  }
+  int stringSize = msgToRP.length() + sensorDataString.length() + (String(dataTimeCounter)).length()+semicolon.length()*3;
   char payload_string[stringSize];
   memset(payload_string,0,sizeof(payload_string)); //initialize the array
-  strcat(payload_string,msgToRP1.c_str());
+  strcat(payload_string,msgToRP.c_str());
   strcat(payload_string,";");
-  strcat(payload_string,thermocoldString.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  return payload_string;
-}
-String prepare_send_thermomix_to_RP(){
-  String msgToRP2 = "thermomix";
-  String PT100_reading;
-  String pipe =";";
-  String thermomixString;
-  thermomixString=(String)readSensor(thermomix_pin);
-  int stringSize = msgToRP2.length() + thermomixString.length() + (String(dataTimeCounter)).length()+pipe.length()*3;  
-  char payload_string[stringSize];
-  memset(payload_string,0,sizeof(payload_string));
-  strcat(payload_string,msgToRP2.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,thermomixString.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  return payload_string;
-}
-String prepare_send_thermohot_to_RP(){
-  String msgToRP3 = "thermohot";
-  String PT100_reading;
-  String pipe =";";
-  String thermohotString;
-  thermohotString=(String)readSensor(thermohot_pin);
-  int stringSize = msgToRP3.length() + thermohotString.length() + (String(dataTimeCounter)).length()+pipe.length()*3;  
-  char payload_string[stringSize];
-  memset(payload_string,0,sizeof(payload_string));
-  strcat(payload_string,msgToRP3.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,thermohotString.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  return payload_string;
-}
-String prepare_send_flowmeter1_to_RP(){
-  String msgToRP4 = "flowmeter1";
-  String PT100_reading;
-  String pipe =";";
-  String flowmeter1String;
-  flowmeter1String=(String)readSensor(flowmeter1_pin);
-  int stringSize = msgToRP4.length() + flowmeter1String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
-  char payload_string[stringSize];
-  memset(payload_string,0,sizeof(payload_string));
-  strcat(payload_string,msgToRP4.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,flowmeter1String.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,(String(dataTimeCounter)).c_str());
-  return payload_string;
-}
-String prepare_send_flowmeter2_to_RP(){
-  String msgToRP5 = "flowmeter2";
-  String PT100_reading;
-  String pipe =";";
-  String flowmeter2String;
-  flowmeter2String=(String)readSensor(flowmeter2_mix_FS3_pin);
-  int stringSize = msgToRP5.length() + flowmeter2String.length() + (String(dataTimeCounter)).length()+pipe.length()*3;
-  char payload_string[stringSize];
-  memset(payload_string,0,sizeof(payload_string));
-  strcat(payload_string,msgToRP5.c_str());
-  strcat(payload_string,";");
-  strcat(payload_string,flowmeter2String.c_str());
+  strcat(payload_string,sensorDataString.c_str());
   strcat(payload_string,";");
   strcat(payload_string,(String(dataTimeCounter)).c_str());
   return payload_string;
 }
 String prepare_send_all_to_RP(){
   String thermocoldmsg, thermomixmsg,thermohotmsg,flowmeter1msg,flowmeter2msg,msgtoSend;
-  thermocoldmsg=prepare_send_thermocold_to_RP();
-  thermomixmsg=prepare_send_thermomix_to_RP();
-  thermohotmsg=prepare_send_thermohot_to_RP();
-  flowmeter1msg=prepare_send_flowmeter1_to_RP();
-  flowmeter2msg=prepare_send_flowmeter2_to_RP();
+  thermocoldmsg=prepare_send_sensorData_to_RP(thermocold_pin);
+  thermomixmsg=prepare_send_sensorData_to_RP(thermomix_pin);
+  thermohotmsg=prepare_send_sensorData_to_RP(thermohot_pin);
+  flowmeter1msg=prepare_send_sensorData_to_RP(flowmeter1_pin);
+  flowmeter2msg=prepare_send_sensorData_to_RP(flowmeter2_mix_FS3_pin);
   msgtoSend="";
   msgtoSend.concat(thermocoldmsg);
   msgtoSend.concat(",");
@@ -290,10 +232,13 @@ void send_data_to_RP(String message){
       *payload_SensorData=*payload_bytes;
       for(int i=0;i<payload_charArray.length();i++){
         payload_SensorData[i]=(uint8_t)payload_charArray[i];
-    
+      dataToSend=false;
+      dataTimeCounter=0;
       } 
       xbee.send(zbTx);
      SerialUSB.println("sending to RP... ");
+     dataToSend=false;  
+    
   }
 }
 
@@ -384,11 +329,11 @@ void parseMessage(){
 }
 
 void read_command(){
-  SerialUSB.println("read_command ");
+  //SerialUSB.println("read_command ");
   //String sensorDataStringToSendToRP="";
   if(strcmp(command_cache.c_str(),"stopAll")==0){
     dataTimePeriod=dataTimePeriod_cache;
-    if(strcmp(sensor.c_str(),"all")==0){
+    if(strcmp(sensor_cache.c_str(),"all")==0){
       dataTimeCounter =0;
       dataTimePeriod = 0;
       msgCount=0;
@@ -400,13 +345,14 @@ void read_command(){
   if(strcmp(command_cache.c_str(),"getData")==0){
     dataToSend=true;
     receivedActuationCommand=false;
-    command=command_cache;
-    sensor=sensor_cache;
+    
     dataTimePeriod=dataTimePeriod_cache;
+	command_cache="";
   }
   if(strcmp(command_cache.c_str(),"setValv")==0){
    valveAction="setValv";
    receivedActuationCommand=true;
+   openValves=true;
    SerialUSB.println("===setActuator==="); 
     targetFlowValue=(double)dataTimePeriod_cache;
    SerialUSB.print("targetFlowValue: ");
@@ -421,83 +367,57 @@ void read_command(){
     
    SerialUSB.print("targetted_energy: ");
    SerialUSB.println(targetted_energy);
+   command_cache="";
   }
 }
 
 void read_sensors(){
-  SerialUSB.println("read_sensors ");
-
-  
-  if(dataToSend){//strcmp(command.c_str(),"getData")==0){
+  if(dataToSend){
     
-	  receivedActuationCommand=false;
-    if(strcmp(sensor.c_str(),"thermocold")==0){
-      sensorDataStringToSendToRP=prepare_send_thermocold_to_RP();
+    receivedActuationCommand=false;
+    if(strcmp(sensor_cache.c_str(),"thermocold")==0){
+      sensorDataStringToSendToRP=prepare_send_sensorData_to_RP(thermocold_pin);
     }
     ///for thermomix
-    if(strcmp(sensor.c_str(),"thermomix")==0){
-      sensorDataStringToSendToRP=prepare_send_thermomix_to_RP();
+    if(strcmp(sensor_cache.c_str(),"thermomix")==0){
+      sensorDataStringToSendToRP=prepare_send_sensorData_to_RP(thermomix_pin);
     }
-    if(strcmp(sensor.c_str(),"thermohot")==0){
-      sensorDataStringToSendToRP=prepare_send_thermohot_to_RP();
+    if(strcmp(sensor_cache.c_str(),"thermohot")==0){
+      sensorDataStringToSendToRP=prepare_send_sensorData_to_RP(thermohot_pin);
     }
-    if(strcmp(sensor.c_str(),"flowmeter1")==0){
-      sensorDataStringToSendToRP=prepare_send_flowmeter1_to_RP();
+    if(strcmp(sensor_cache.c_str(),"flowmeter1")==0){
+      sensorDataStringToSendToRP=prepare_send_sensorData_to_RP(flowmeter1_pin);
     }
-    if(strcmp(sensor.c_str(),"flowmeter2")==0){
-      sensorDataStringToSendToRP=prepare_send_flowmeter2_to_RP();
+    if(strcmp(sensor_cache.c_str(),"flowmeter2")==0){
+      sensorDataStringToSendToRP=prepare_send_sensorData_to_RP(flowmeter2_mix_FS3_pin);
     }
-    if(strcmp(sensor.c_str(),"all")==0){
+    if(strcmp(sensor_cache.c_str(),"all")==0){
       SerialUSB.println("sensor==all"); 
       sensorDataStringToSendToRP=prepare_send_all_to_RP();
     }
-    
-  }
-}
-
-void readSensorsCounter(){
-  if(dataToSend){
-   if(dataTimeCounter == dataTimePeriod){
-    SerialUSB.print("finish sending ");
-    SerialUSB.print(msgCount);
-    SerialUSB.println(" messages!");
-    dataTimeCounter =0;
-    dataTimePeriod = 0;
-    dataTimePeriod_cache=0;
-    dataToSend=false;
-    sensorDataStringToSendToRP="";
-    msgCount=0;
-    command_cache="";
     sensor_cache="";
-    return;
-   }
-	 SerialUSB.print("message ");
-	 SerialUSB.print(msgCount);
-	 SerialUSB.print("/");
-	 SerialUSB.print(dataTimePeriod);
-	 SerialUSB.println(" sent");
-	 //Send DATA to RP
-   receivedActuationCommand=false;
-   
-	 msgCount++;
-	 dataTimeCounter++;
   }
 }
-
 
 ////
 ////main loop
 void loop (){
+  if(!openValves){
+    analogWrite(svalve1_4mm_pin, 0);
+    analogWrite(svalve2_3mm_pin, 0);
+  }
+   
   receive_message_from_RP();
   read_command();
   read_sensors();
   setValveActuation();
+  
   if(sensorDataStringToSendToRP!=""){
-     send_data_to_RP(sensorDataStringToSendToRP);
+    send_data_to_RP(sensorDataStringToSendToRP);
+	sensorDataStringToSendToRP="";
   }
-  readSensorsCounter();
+  //readSensorsCounter();
   
   Serial1.flush();
-  delay(1000);
 }
 

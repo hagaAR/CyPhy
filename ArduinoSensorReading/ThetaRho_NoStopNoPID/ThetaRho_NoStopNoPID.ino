@@ -12,6 +12,7 @@ int svalve2_3mm_pin=3;
 double targetted_energy;
 String sensorDataStringToSendToRP="";
 bool dataToSend=false;
+bool openValves=false;
 String command_cache = "";
 String sensor_cache= "";
 String valveAction="";
@@ -51,9 +52,15 @@ void setup() {
   //SerialUSB.begin(9600);
   Serial1.begin(9600);
   Serial1.flush();
+  analogWriteResolution(10);
   xbee.setSerial(Serial1);
-  pinMode(2,OUTPUT);
-  pinMode(3,OUTPUT);
+  openValves=false;
+  Input = analogRead(flowmeter2_mix_FS3_pin);
+  valvePID.SetMode(AUTOMATIC);
+
+  pinMode(svalve1_4mm_pin,OUTPUT);
+  pinMode(svalve2_3mm_pin,OUTPUT);
+  
 }
  ///
  ///functions to read/set sensors/actuators
@@ -73,72 +80,121 @@ float readSensor(int pin) {
   //reading PT100
   if( pin==thermocold_pin || pin==thermomix_pin || pin==thermohot_pin ){
     Temperature = (voltage*6250/165.1)-25;
-    SerialUSB.print("Pin: ");
-    SerialUSB.print(String(pin));
-    SerialUSB.print(" Temperature °C: ");
-    SerialUSB.println(Temperature);
+//    SerialUSB.print("Pin: ");
+//    SerialUSB.print(String(pin));
+//    SerialUSB.print(" Temperature °C: ");
+//    SerialUSB.println(Temperature);
     result=Temperature;
   //  //accuracy gap : 0.10 °c    
   }
   //reading flow meter
   if( pin==flowmeter1_pin || pin==flowmeter2_mix_FS3_pin ){
     flow = (1250*voltage/165.1)-5;
-    SerialUSB.print("Pin: ");
-    SerialUSB.print(String(pin));
-    SerialUSB.print(" Value Flow meter : ");
-    SerialUSB.println(flow);
+//    SerialUSB.print("Pin: ");
+//    SerialUSB.print(String(pin));
+//    SerialUSB.print(" Value Flow meter : ");
+//    SerialUSB.println(flow);
     result=flow;    
   }
   return result;
 }
-void openValve(double targetted_flow){
+void openValveWithPID(double targetted_flow){
  long adcAverage = 0;
  int aveLength=100; //number of AnalogRead in 1 Arduinoloop
  float adcVal;
  float Temperature,flow,result;
+ int thresholdValve1=189;//=759;for 0-1024
+ int thresholdValve2=195;//=783;
  analogReadResolution(10);//quantified in 10 bits 0 to1023
- 
+ analogWriteResolution(10);//quantified in 10 bits 0 to1023
   for(int i=0; i<aveLength;i++){
-    Input = analogRead(flowmeter1_pin);
+    Input = analogRead(flowmeter2_mix_FS3_pin);
     adcAverage += Input;
   }
   Input=(float)adcAverage/ (float)aveLength;
-  SerialUSB.print("openValve : ");
   SerialUSB.print("targetted_flow : ");
   SerialUSB.print(targetted_flow);
-  SerialUSB.print("  Input (0 to 1024): ");
+  SerialUSB.print("  Input (0-255): ");
   SerialUSB.print(Input);
-  flowSetpoint =1023*targetted_flow/14.642;// 14.642mA max intensity with arduino+resistance
+  flowSetpoint =1023*targetted_flow/20;// 14.642mA max intensity with arduino+resistance
   SerialUSB.print("  flowSetpoint : ");
   SerialUSB.print(flowSetpoint);
   valvePID.Compute();
   SerialUSB.print("  Output : ");
   SerialUSB.println(Output);
-  if(targetted_flow<7.0){
+  if(targetted_flow<=5.0){
     analogWrite(svalve1_4mm_pin,0);
+    SerialUSB.println("Opening valve");
+    //analogWrite(svalve2_3mm_pin,900);
+    if (Output<=thresholdValve2){
+      Output=thresholdValve2+1;
+    }
     analogWrite(svalve2_3mm_pin,Output);
   }
-  if(targetted_flow>=7,0 && targetted_flow<7.0){
+  if(targetted_flow>5.0 && targetted_flow<6.7){
+    if (Output<=thresholdValve1){
+      Output=thresholdValve1+1;
+    }
     analogWrite(svalve1_4mm_pin,Output);
     analogWrite(svalve2_3mm_pin,0);
   }
-  if(targetted_flow>=9.0){
-    analogWrite(svalve1_4mm_pin,512);
+  if(targetted_flow>=6.7){
+    if (Output<=thresholdValve2){
+      SerialUSB.println("Opening valvewadawdawaw=================");
+      SerialUSB.println("Opening valvewadawdawaw=================");
+      Output=thresholdValve2+1;
+    }
+    SerialUSB.println("Opening valvewadawdawaw=================");
+    analogWrite(svalve1_4mm_pin,thresholdValve1);
     analogWrite(svalve2_3mm_pin,Output);
   }
-  
-  if(targetted_flow!=0){
-	SerialUSB.print("targetted_flow : ");
-    SerialUSB.println(targetted_flow);
-  }
+
 }
 
-void openValveManually50percent(){
-  analogWrite(svalve1_4mm_pin,512);
-  analogWrite(svalve2_3mm_pin,512);
+void openValveLinear(double targetted_flow){
+ long adcAverage = 0;
+ int aveLength=100; //number of AnalogRead in 1 Arduinoloop
+ float flowSpeed;
+ float minFlow1=3.8;//lpm
+ float minFlow2=3.3;
+ int thresholdValve1=760;//756
+ int thresholdValve2=785;//784
+ float mesuredFlowSpeed;
+ int flowSpeedBit1,flowSpeedBit2;
+ analogReadResolution(10);//quantified in 10 bits 0 to1023
+ analogWriteResolution(10);//quantified in 10 bits 0 to1023
+ 
+  mesuredFlowSpeed=readSensor(flowmeter2_mix_FS3_pin);
+  SerialUSB.print("targetted_flow : ");
+  SerialUSB.print(targetted_flow);
+  SerialUSB.print("  mesuredFlowSpeed: ");
+  SerialUSB.print(mesuredFlowSpeed);
+  if(abs(targetted_flow-mesuredFlowSpeed)>0.1){
+	  flowSpeed=(targetted_flow+mesuredFlowSpeed)/2;
+    SerialUSB.print("  flowSpeed: ");
+    SerialUSB.print(flowSpeed);
+  }
+  
+  if(targetted_flow<4.5){
+	flowSpeedBit2=1024*flowSpeed/5.5;
+	analogWrite(svalve1_4mm_pin,0);
+	analogWrite(svalve2_3mm_pin,flowSpeedBit2);
+  }
+  if(targetted_flow>=4.5||targetted_flow<8.0){
+	flowSpeedBit1=thresholdValve1*flowSpeed/minFlow1;
+	analogWrite(svalve1_4mm_pin,flowSpeedBit1);
+	analogWrite(svalve2_3mm_pin,0);
+  }
+  if(targetted_flow>=8.0){
+	analogWrite(svalve1_4mm_pin,flowSpeedBit1);
+	analogWrite(svalve2_3mm_pin,flowSpeedBit2);
+  }
+  analogWrite(svalve1_4mm_pin,thresholdValve1);
+  analogWrite(svalve2_3mm_pin,Output);
+  
 }
 void closeValve(){
-  openValve(0);
+  openValveLinear(0);
 }
 
 double calculateEnergy(){
@@ -158,18 +214,18 @@ double calculateEnergy(){
 }
 void setValveActuation(){
   double P,Q,mixFlowValue;
-  P=calculateEnergy();
-  Q=P/3600; //kW.h
-  SerialUSB.print("Q energy : ");
-  SerialUSB.println(Q);
-  openValve(targetFlowValue);
-  mixFlowValue = readSensor(flowmeter2_mix_FS3_pin);
-  if(mixFlowValue<0.5){
-    openValveManually50percent();
-  }
-  if(Q>=targetted_energy){
-    closeValve();
-	SerialUSB.println("closeValve()");
+  if(openValves){
+    P=calculateEnergy();
+    Q=P/3600; //kW.h
+    SerialUSB.print(" Q energy : ");
+    SerialUSB.println(Q);
+    openValveLinear(targetFlowValue);
+    mixFlowValue = readSensor(flowmeter2_mix_FS3_pin);
+   if(Q>=targetted_energy){
+      closeValve();
+      openValves=false;
+    SerialUSB.println("closeValve()");
+    }
   }
 }
 ////
@@ -290,10 +346,17 @@ void send_data_to_RP(String message){
       *payload_SensorData=*payload_bytes;
       for(int i=0;i<payload_charArray.length();i++){
         payload_SensorData[i]=(uint8_t)payload_charArray[i];
-    
+      dataToSend=false;
+      command = "";
+      sensor= "";
+      dataTimeCounter=0;
       } 
       xbee.send(zbTx);
      SerialUSB.println("sending to RP... ");
+     dataToSend=false;
+     //bool dataToSend=false;
+    
+    
   }
 }
 
@@ -384,7 +447,7 @@ void parseMessage(){
 }
 
 void read_command(){
-  SerialUSB.println("read_command ");
+  //SerialUSB.println("read_command ");
   //String sensorDataStringToSendToRP="";
   if(strcmp(command_cache.c_str(),"stopAll")==0){
     dataTimePeriod=dataTimePeriod_cache;
@@ -402,11 +465,15 @@ void read_command(){
     receivedActuationCommand=false;
     command=command_cache;
     sensor=sensor_cache;
+    
     dataTimePeriod=dataTimePeriod_cache;
+
+    command_cache="";
   }
   if(strcmp(command_cache.c_str(),"setValv")==0){
    valveAction="setValv";
    receivedActuationCommand=true;
+   openValves=true;
    SerialUSB.println("===setActuator==="); 
     targetFlowValue=(double)dataTimePeriod_cache;
    SerialUSB.print("targetFlowValue: ");
@@ -425,12 +492,12 @@ void read_command(){
 }
 
 void read_sensors(){
-  SerialUSB.println("read_sensors ");
+  //SerialUSB.println("read_sensors ");
 
   
   if(dataToSend){//strcmp(command.c_str(),"getData")==0){
     
-	  receivedActuationCommand=false;
+    receivedActuationCommand=false;
     if(strcmp(sensor.c_str(),"thermocold")==0){
       sensorDataStringToSendToRP=prepare_send_thermocold_to_RP();
     }
@@ -455,39 +522,45 @@ void read_sensors(){
   }
 }
 
-void readSensorsCounter(){
-  if(dataToSend){
-   if(dataTimeCounter == dataTimePeriod){
-    SerialUSB.print("finish sending ");
-    SerialUSB.print(msgCount);
-    SerialUSB.println(" messages!");
-    dataTimeCounter =0;
-    dataTimePeriod = 0;
-    dataTimePeriod_cache=0;
-    dataToSend=false;
-    sensorDataStringToSendToRP="";
-    msgCount=0;
-    command_cache="";
-    sensor_cache="";
-    return;
-   }
-	 SerialUSB.print("message ");
-	 SerialUSB.print(msgCount);
-	 SerialUSB.print("/");
-	 SerialUSB.print(dataTimePeriod);
-	 SerialUSB.println(" sent");
-	 //Send DATA to RP
-   receivedActuationCommand=false;
-   
-	 msgCount++;
-	 dataTimeCounter++;
-  }
-}
+//void readSensorsCounter(){
+//  if(dataToSend){
+//   if(dataTimeCounter == dataTimePeriod){
+//    SerialUSB.print("finish sending ");
+//    SerialUSB.print(msgCount);
+//    SerialUSB.println(" messages!");
+//    dataTimeCounter =0;
+//    dataTimePeriod = 0;
+//    dataTimePeriod_cache=0;
+//    dataToSend=false;
+//    sensorDataStringToSendToRP="";
+//    msgCount=0;
+//    command_cache="";
+//    sensor_cache="";
+//    return;
+//   }
+//   SerialUSB.print("message ");
+//   SerialUSB.print(msgCount);
+//   SerialUSB.print("/");
+//   SerialUSB.print(dataTimePeriod);
+//   SerialUSB.println(" sent");
+//   //Send DATA to RP
+//   receivedActuationCommand=false;
+//   
+//   msgCount++;
+//   dataTimeCounter++;
+//  }
+//}
 
 
 ////
 ////main loop
 void loop (){
+  if(!openValves){
+    analogWriteResolution(8);
+    analogWrite(svalve1_4mm_pin, 00);
+    analogWrite(svalve2_3mm_pin, 0);
+   }
+   
   receive_message_from_RP();
   read_command();
   read_sensors();
@@ -495,9 +568,8 @@ void loop (){
   if(sensorDataStringToSendToRP!=""){
      send_data_to_RP(sensorDataStringToSendToRP);
   }
-  readSensorsCounter();
+  //readSensorsCounter();
   
   Serial1.flush();
-  delay(1000);
 }
 

@@ -2,8 +2,8 @@
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  pinMode(2,OUTPUT);
-  pinMode(3,OUTPUT);
+//  pinMode(2,OUTPUT);
+//  pinMode(3,OUTPUT);
 }
 
 void loop(){
@@ -11,9 +11,9 @@ void loop(){
   // with an attached LED
 
     // the default PWM resolution
-  analogWriteResolution(12);
-  analogWrite(2,4095);
-  analogWrite(3,2048);
+  analogWriteResolution(10);
+  analogWrite(2,0);
+  analogWrite(3,1023);
   
 //  int sensorVal = analogRead(A0);
 //  Serial.print("Analog Read) : ");
