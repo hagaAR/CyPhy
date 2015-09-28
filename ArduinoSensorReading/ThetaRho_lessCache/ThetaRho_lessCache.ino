@@ -339,7 +339,12 @@ void read_command(){
       msgCount=0;
       sensorDataStringToSendToRP=prepare_send_stopAll_to_RP();
       dataToSend=false; 
+      receivedActuationCommand=false;
+      openValves=false;
       SerialUSB.println("Hard Stop!!");
+      command_cache="";
+      targetted_energy=0;
+      sensor_cache="";
     }
   }
   if(strcmp(command_cache.c_str(),"getData")==0){
@@ -347,7 +352,7 @@ void read_command(){
     receivedActuationCommand=false;
     
     dataTimePeriod=dataTimePeriod_cache;
-	command_cache="";
+	  command_cache="";
   }
   if(strcmp(command_cache.c_str(),"setValv")==0){
    valveAction="setValv";
