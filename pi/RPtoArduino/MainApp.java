@@ -19,7 +19,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-public class MainApp {
+public class MainApp extends Observable{
 	
 	private static Logger logger= Logger.getLogger(MainApp.class);
 	
@@ -53,13 +53,13 @@ public class MainApp {
 		MainApp observer = new MainApp();
 		
 		com.addObserver((Observable o, Object arg) -> {
-			insertData((String)arg);
+			receive_insertDataIntoDB_andNotifyServlet((String)arg);
 			//System.out.println("notified message is: " + arg);
 		});
 		com.setATModeCommunication();
 	}
 	
-	static public void insertData(String data){
+	static public void receive_insertDataIntoDB_andNotifyServlet(String data){
 		byte octet0= 0;
 		byte [] dataByteArray=data.getBytes();
 		int first0Index=0;
@@ -104,6 +104,18 @@ public class MainApp {
 			dbcon.sensor_data_table_new_insert(dbcon.getSensorID(dataArray[0]),Double.parseDouble(dataArray[1]),timestamp);
 			//logger.debug("Insertion-data: ");
 			//logger.debug(data);
+			
+			// notify servlet
+			try{
+				SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+				String timestampString  = dateFormat.format(timestamp);
+				setChanged();
+				notifyObservers(dataArray.push(timestampString));
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+			
+			
 		}
 		timeStamp+= 1000;
 	}

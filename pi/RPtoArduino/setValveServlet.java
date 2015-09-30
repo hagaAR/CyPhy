@@ -5,11 +5,11 @@ import javax.servlet.http.HttpServlet;
 import java.io.IOException;
 import org.w3c.dom.Document;
 
-public class setValveServlet extends HttpServlet
+public class SetValveServlet extends HttpServlet
 {
     private String greeting="Hello World, you are using setValve";
-    public setValveServlet(){}
-    public setValveServlet(String greeting)
+    public SetValveServlet(){}
+    public SetValveServlet(String greeting)
     {
         this.greeting=greeting;
     }
