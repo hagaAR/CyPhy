@@ -4,7 +4,7 @@
 	         AnyLogic Project File 
 *************************************************	         
 -->
-<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="7.1.2.201502051939" AlpVersion="7.1.10">
+<AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="7.1.2.201502051922" AlpVersion="7.1.10">
 <Model>
 	<Id>1443189243239</Id>
 	<Name><![CDATA[Water Heater]]></Name>
@@ -594,6 +594,10 @@ getPresentation().setPresentable( getEngine().getRoot() );]]></ActionCode>
 			<Name><![CDATA[RPiConnection]]></Name>
 			<Text><![CDATA[import java.net.*;
 import java.io.*;
+import javax.websocket.ContainerProvider;
+import javax.websocket.Session;
+import javax.websocket.WebSocketContainer;
+import org.eclipse.jetty.util.component.LifeCycle;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -644,6 +648,61 @@ public class RPiConnection implements Serializable {
 		    
 			
 		}catch(Exception e){
+			System.out.println("-Exception happened-");
+	        e.printStackTrace();
+		}finally { 
+			 try {
+			    is.close();
+			 } catch (IOException ioe) {
+			    // just going to ignore this one
+			 }
+			 
+	    } // end of 'finally' clause
+		//RPiConnection.getData("2015-09-01","2015-09-05");
+		return s;
+	}
+	
+	public String getLiveData(){
+		String urIString="http://eif-lab-rpi.eifer.kit.edu/getLiveData";
+		traceln(urIString);
+		InputStream is = null;
+	    DataInputStream dis;
+	    String s="";
+		
+		try{
+			URI uri = new URI(urlString);
+			WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+			
+			try
+            {
+                // Attempt Connect
+                Session session = container.connectToServer(EventSocket.class,uri);
+                // Send a message
+                session.getBasicRemote().sendText("Hello");
+                // Close session
+                session.close();
+            }
+            finally
+            {
+                // Force lifecycle stop when done with container.
+                // This is to free up threads and resources that the
+                // JSR-356 container allocates. But unfortunately
+                // the JSR-356 spec does not handle lifecycles (yet)
+                if (container instanceof LifeCycle)
+                {
+                    ((LifeCycle)container).stop();
+                }
+            }
+			URLConnection conn = uri.openConnection();
+			is = url.openStream();
+			
+			BufferedReader in = new BufferedReader( new InputStreamReader( conn.getInputStream() ) );
+			s= in.readLine();
+			traceln(s);
+            in.close();
+		    
+			
+		}catch(Exception e,Throwable t){
 			System.out.println("-Exception happened-");
 	        e.printStackTrace();
 		}finally { 
