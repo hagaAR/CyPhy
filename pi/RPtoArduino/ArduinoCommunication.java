@@ -33,18 +33,10 @@ public class ArduinoCommunication extends Observable {
 	}
 	
 	public void setATModeCommunication(){
-		buffer="";
-		message="";
-		messageComplete = true;
-		stopSending=false;
-		countingReceivedMsg=0;
-		
 		serial = SerialFactory.createInstance();
 		//System.out.println("Instance created");
-		serial.shutdown();
 		serial.open(serial.DEFAULT_COM_PORT, 9600);
 		
-		serial.flush();
 		//System.out.println("Port Serie n°: "+serial.DEFAULT_COM_PORT);
 		
 		// create and register the serial data listener
@@ -88,7 +80,6 @@ public class ArduinoCommunication extends Observable {
 		System.out.println("Sending: '"+data+"'");
 		//In AT Mode:
 		serial.write(data.getBytes());
-		//serial.flush();
 		
 	}
 	
@@ -118,12 +109,8 @@ public class ArduinoCommunication extends Observable {
 	}
 	
 	public void sendCommand(String command){
-		serial.flush();
 		sendToArduinoATMode(command);
 	}
-	/*public void flushSerialData(){
-		setATModeCommunication();
-	}*/
 	
 	public void checkMessage(){
 		//handle messages
