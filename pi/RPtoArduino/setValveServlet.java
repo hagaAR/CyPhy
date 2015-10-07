@@ -16,8 +16,8 @@ public class SetValveServlet extends HttpServlet
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
-		MainApp mainApp = new MainApp();	
-		mainApp.setUpArduinoCommunication ();
+		//MainApp mainApp = new MainApp();	
+		//mainApp.setUpArduinoCommunication ();
 		
 		String useful_energy=request.getParameter("useful_energy");
 		String water_flow_rate_string=request.getParameter("water_flow_rate");
@@ -29,7 +29,7 @@ public class SetValveServlet extends HttpServlet
 		float kWh = Float.parseFloat(useful_energy);
 		System.out.println(kWh);
 		float water_flow_rate = Float.parseFloat(water_flow_rate_string);
-		mainApp.com.setValve(kWh,water_flow_rate);
+		MainApp.setValve(kWh,water_flow_rate);
 
         response.setContentType("text/html");
         response.setStatus(HttpServletResponse.SC_OK);
