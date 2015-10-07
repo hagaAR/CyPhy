@@ -53,8 +53,11 @@ public class DBConnexion {
 		}
 	}
 	
-	public void disconnect(){
-		//con.close();
+	public void disconnect (){
+		try{
+			con.close();
+		}catch(Exception e){
+		}
 	}
 	
 	

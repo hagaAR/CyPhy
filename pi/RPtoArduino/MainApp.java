@@ -19,10 +19,24 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-public class MainApp extends Observable{
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Attr;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+public class MainApp{
 	
 	private static Logger logger= Logger.getLogger(MainApp.class);
 	
+	static String answer = "";
+	static boolean getLiveData = false;
 	static ArduinoCommunication com;
 	static DBConnexion dbcon;
 	static long timeStamp =0;
@@ -39,6 +53,7 @@ public class MainApp extends Observable{
 		dbcon.create_sensor_data_table();
 	}
 	
+	
 	static public void fillSensorsTable () {	
 		dbcon.sensors_table_new_insert(1,"thermocold","celcius");
 		dbcon.sensors_table_new_insert(2,"thermomix","celcius");
@@ -48,18 +63,21 @@ public class MainApp extends Observable{
 		dbcon.sensors_table_new_insert(5,"flowmeter2","lpm");
 	}
 	
-	static public void setUpArduinoCommunication(){
+	 public static void setUpArduinoCommunication(){
 		com = new ArduinoCommunication();
 		MainApp observer = new MainApp();
 		
 		com.addObserver((Observable o, Object arg) -> {
 			receive_insertDataIntoDB_andNotifyServlet((String)arg);
-			//System.out.println("notified message is: " + arg);
+			if(getLiveData){
+				parseToServlet((String)arg);
+				getLiveData = false;
+			}
+			System.out.println("notified message is: " + arg);
 		});
 		com.setATModeCommunication();
 	}
-	
-	static public void receive_insertDataIntoDB_andNotifyServlet(String data){
+	public static  String cleanSerialData(String data){
 		byte octet0= 0;
 		byte [] dataByteArray=data.getBytes();
 		int first0Index=0;
@@ -72,15 +90,22 @@ public class MainApp extends Observable{
 		if(first0Index>0)
 			newDataByteArray=Arrays.copyOfRange(newDataByteArray,first0Index+1,dataByteArray.length);
 				
-	
-		data=new String(newDataByteArray);
+		//System.out.println("new cleanSerialData: "+ new String(newDataByteArray));
+		return new String(newDataByteArray);
+		//r data;
 		//System.out.print("new data:");
-		//System.out.println(data);
+		//System.out.println(data);	
+	}
+	 public static void receive_insertDataIntoDB_andNotifyServlet(String data){
 		
-		String [] multipleSensorsdata =data.split(",");
+		String cleanData = cleanSerialData(data);
+		String [] multipleSensorsdata =cleanData.split(",");
 		for (String sensorData:multipleSensorsdata){
-			String[] dataArray = sensorData.split(";");
-			if(dataArray.length <= 2){
+			ArrayList<String> dataArray = new ArrayList();
+			for (String str:sensorData.split(";")){
+				dataArray.add(str);
+			}
+			if(dataArray.size() <= 2){
 				String dataLog="";
 				dataLog="No data is saved- data: " +sensorData;
 				System.out.println("No data is saved");
@@ -92,7 +117,7 @@ public class MainApp extends Observable{
 			Timestamp timestamp = new Timestamp(timeStamp);//+ (1000*Integer.parseInt(dataArray[2])));
 			
 			System.out.println(new Date(timeStamp));
-			int sensorId = dbcon.getSensorID(dataArray[0]);
+			int sensorId = dbcon.getSensorID(dataArray.get(0));
 			if(sensorId == -1){
 				String dataLog2="";
 				dataLog2="ID NOT FOUND"+" No data is saved-data: "+sensorData;
@@ -101,23 +126,88 @@ public class MainApp extends Observable{
 				return;
 			}
 		
-			dbcon.sensor_data_table_new_insert(dbcon.getSensorID(dataArray[0]),Double.parseDouble(dataArray[1]),timestamp);
+			dbcon.sensor_data_table_new_insert(dbcon.getSensorID(dataArray.get(0)),Double.parseDouble(dataArray.get(1)),timestamp);
 			//logger.debug("Insertion-data: ");
 			//logger.debug(data);
 			
 			// notify servlet
-			try{
-				SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
-				String timestampString  = dateFormat.format(timestamp);
-				setChanged();
-				notifyObservers(dataArray.push(timestampString));
-			}catch(Exception e){
-				e.printStackTrace();
-			}
-			
-			
 		}
+		
 		timeStamp+= 1000;
+	}
+	public static String getLiveData(){
+		getLiveData = true;
+		answer = "";
+		getDataSampleFromAllSensors_insertInSensorDataTable(0);
+		while(answer.equals("")){}
+		System.out.println("Received answer: " + answer);
+		return answer;
+	}
+	
+	public  static void parseToServlet(String sensors){
+		String cleanSensors = cleanSerialData(sensors);
+		String [] multipleSensorsdata =cleanSensors.split(",");
+		try{
+			SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+			String timestampString  = dateFormat.format(timeStamp);
+			System.out.println("timestampString: " +timestampString);
+			Document doc = convertToXML(multipleSensorsdata);
+			answer = XMLDocumentToString(doc);
+			System.out.println("Prepared answer: " + answer);
+		}catch(Exception e)	{
+			answer = "ERROR";
+			resetCommunication();
+			getLiveData = false;
+		}
+		
+	}
+	
+	/*public String getAnswer(){
+		String valueToReturn= "";
+		if(!answer.equals("")){
+			valueToReturn= answer;
+			answer = "";
+		}
+		return valueToReturn;
+	}*/
+
+	public static void resetCommunication(){
+			com = null;
+			setUpArduinoCommunication();
+	}
+	
+	public  static Document convertToXML(String [] sensorList) throws Exception {
+		
+		Document resultXMLDocument;
+		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+		// root elements
+		resultXMLDocument = docBuilder.newDocument();
+		Element rootElement = resultXMLDocument.createElement("Sensors");
+		resultXMLDocument.appendChild(rootElement);
+		
+		for(String sensor: sensorList){
+			String[] sensorElements = sensor.split(";");
+			String sensor_name = sensorElements[0];
+			String sensor_value = sensorElements[1];
+			String sensor_data_timestamp = sensorElements[2];
+			// sensorData elements
+			Element sensorElement = resultXMLDocument.createElement("Sensor");
+			rootElement.appendChild(sensorElement);
+			// sensorName elements
+			Element sensorName = resultXMLDocument.createElement("sensorName");
+			sensorName.appendChild(resultXMLDocument.createTextNode(sensor_name));
+			sensorElement.appendChild(sensorName);
+			// sensorDataValue, sensorDataTimestamp elements
+			Element sensorDataValue = resultXMLDocument.createElement("dataValue");
+			sensorDataValue.appendChild(resultXMLDocument.createTextNode(sensor_value));
+			sensorElement.appendChild(sensorDataValue);
+			Element sensorDataTimestamp = resultXMLDocument.createElement("timestamp");
+			sensorDataTimestamp.appendChild(resultXMLDocument.createTextNode(sensor_data_timestamp));
+			sensorElement.appendChild(sensorDataTimestamp);
+		}
+		return resultXMLDocument;
+	
 	}
 
 	
@@ -177,6 +267,9 @@ public class MainApp extends Observable{
 			timeStamp = new Date().getTime();	
 		com.getDataFromAllSensors(timeDataPeriod);	
 	}
+	static public void setValve (float kwh,float flow_rate) {	
+		com.setValve(kwh,flow_rate);	
+	}
 	
 	static public void startDataCollection (Date startDate, int timeDataPeriod) {	
 		timeStamp = startDate.getTime();
@@ -188,34 +281,7 @@ public class MainApp extends Observable{
 				e.printStackTrace();
 			}
 		}
-		
-		/*try{
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-			//Date formattedStartDate = dateFormat.format(startDate);
-			Date nowDate= new Date();
-			String startDateString=sdf.format(startDate);
-			String nowDateString=sdf.format(nowDate);
-			if (startDate.before(nowDate)){
-				String msg="Past startDate for startDataCollection()";
-				System.out.println("Past startDate("+ startDateString +") for startDataCollection()");
-				return ;
-			}
-			System.out.println("startDataCollection()---startDate: "+startDateString);
-			System.out.println("startDataCollection()---nowDateString: "+nowDateString);
-			long waitingTimeBeforeStart;
-
-			//if(nowDate.before(startDate)){
-				//nowDate=new Date();
-				waitingTimeBeforeStart=startDate.getTime()-nowDate.getTime();
-				System.out.println("startDataCollection() -------Waiting : "+waitingTimeBeforeStart+"ms");
-				Thread.sleep(waitingTimeBeforeStart);
-			//}
-			timeStamp = startDate.getTime(); //new Date().getTime();	
-			System.out.println("startDataCollection() -------Go for "+timeDataPeriod+" seconds");
-			com.getDataFromAllSensors(timeDataPeriod);
-		} catch(Exception e){
-			e.printStackTrace();
-		}	*/
+	
 	}
 	
 	static public void stopArduinoSending () {
@@ -263,15 +329,16 @@ public class MainApp extends Observable{
 		//getDataSampleFromThermo2_insertInSensorDataTable (4);
 		//ask Arduino for data from all sensors
 		
-		initialiseSensorDataTable ();
+		//initialiseSensorDataTable ();
 		
 		//com.setValve((float)0.101,(float)4);
 		
 		
-		//for(int i=0;i<20;i++){
-			//getDataSampleFromAllSensors_insertInSensorDataTable (1);
-			//Thread.sleep(1000);
-		//}
+		for(int i=0;i<20;i++){
+			getLiveData=true;
+			getDataSampleFromAllSensors_insertInSensorDataTable (1);
+			Thread.sleep(1000);
+		}
 		//Thread.sleep(3000);
 		//com.setValve((float)0,0);
 		

@@ -10,6 +10,9 @@ public class OneServletContext
     {
         Server server = new Server(80);
         try{
+			MainApp.setUpDataBase();
+			MainApp.setUpArduinoCommunication();
+			
             ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
             context.setContextPath("/");
             server.setHandler(context);
@@ -30,7 +33,7 @@ public class OneServletContext
             
 
             server.start();
-            server.dump(System.err);
+            //server.dump(System.err);
             server.join();
         }
         catch (Throwable t){
